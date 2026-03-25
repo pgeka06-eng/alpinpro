@@ -77,6 +77,10 @@ export default function CalculatorPage() {
   const [selectedPriceList, setSelectedPriceList] = useState("");
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDesc, setTemplateDesc] = useState("");
 
   // Cost settings
   interface CostData {
