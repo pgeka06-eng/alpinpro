@@ -323,10 +323,27 @@ export default function CalculatorPage() {
                   </div>
                 )}
 
-                <Button className="w-full mt-2 gap-2" size="lg">
+                <Button className="w-full mt-2 gap-2" size="lg" onClick={() => setShowSendDialog(true)}>
                   <Send className="w-4 h-4" />
                   Отправить клиенту
                 </Button>
+
+                {service && calculation && (
+                  <SendEstimateDialog
+                    open={showSendDialog}
+                    onOpenChange={setShowSendDialog}
+                    serviceName={service.service_name}
+                    unit={service.unit}
+                    basePrice={service.price}
+                    volume={Number(volume)}
+                    coeffUrgency={calculation.breakdown.urgency}
+                    coeffComplexity={calculation.breakdown.complexity}
+                    coeffHeight={calculation.breakdown.height}
+                    coeffSeason={calculation.breakdown.season}
+                    totalCoeff={calculation.coeff}
+                    totalPrice={calculation.total}
+                  />
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center">
