@@ -14,6 +14,7 @@ import {
   HardHat,
   LogOut,
   Shield,
+  Receipt,
 } from "lucide-react";
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
   { to: "/orders", icon: ClipboardList, label: "Заказы", roles: ["admin", "manager", "climber"] },
   { to: "/accounting", icon: Wallet, label: "Бухгалтерия", roles: ["admin", "manager", "climber"] },
   { to: "/documents", icon: FileText, label: "Документы", roles: ["admin", "manager", "climber"] },
+  { to: "/price-lists", icon: Receipt, label: "Прайс-листы", roles: ["admin", "manager", "climber"] },
   { to: "/climbers", icon: Users, label: "Альпинисты", roles: ["admin", "manager"] },
   { to: "/settings", icon: Settings, label: "Настройки", roles: ["admin", "manager", "climber"] },
 ];
