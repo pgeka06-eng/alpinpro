@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { HardHat, LogIn, UserPlus } from "lucide-react";
+import { HardHat, LogIn, UserPlus, MailCheck, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AuthPage() {
