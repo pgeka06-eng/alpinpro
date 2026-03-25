@@ -119,13 +119,34 @@ export default function CalculatorPage() {
     const belowMin = total < MIN_ORDER;
     if (belowMin) total = MIN_ORDER;
     const margin = (total - basePrice) / total;
+    const profit = total - basePrice;
+
+    // Recommended price for target margin
+    const recommendedPrice = Math.round(basePrice / (1 - TARGET_MARGIN));
+    // Minimum acceptable price (at MIN_MARGIN)
+    const minAcceptablePrice = Math.round(basePrice / (1 - MIN_MARGIN));
+    const minProfit = minAcceptablePrice - basePrice;
+
+    // Smart rating
+    let priceRating: "excellent" | "good" | "ok" | "low" | "danger";
+    if (margin >= TARGET_MARGIN) priceRating = "excellent";
+    else if (margin >= GOOD_MARGIN) priceRating = "good";
+    else if (margin >= MIN_MARGIN) priceRating = "ok";
+    else if (margin >= 0.1) priceRating = "low";
+    else priceRating = "danger";
+
     return {
       basePrice,
       coeff,
       total,
       margin,
+      profit,
       isCheap: margin < MIN_MARGIN,
       belowMin,
+      recommendedPrice,
+      minAcceptablePrice,
+      minProfit,
+      priceRating,
       breakdown: {
         urgency: urgencyCoeff,
         complexity: complexityCoeff,
