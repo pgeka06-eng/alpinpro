@@ -35,6 +35,8 @@ const coeffValues = {
 
 const MIN_ORDER = 15000;
 const MIN_MARGIN = 0.25;
+const TARGET_MARGIN = 0.40;
+const GOOD_MARGIN = 0.35;
 
 // Fallback services when no price lists exist
 const fallbackServices: ServiceItem[] = [
