@@ -85,69 +85,61 @@ export default function PriceListsPage() {
   }, [selectedList, fetchItems]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
 
-    if (file.type !== "application/pdf") {
-      toast.error("Загрузите PDF файл");
+    const pdfFiles = Array.from(files).filter((f) => f.type === "application/pdf");
+    if (pdfFiles.length === 0) {
+      toast.error("Выберите PDF файлы");
       return;
+    }
+    if (pdfFiles.length < files.length) {
+      toast.warning(`${files.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
     }
 
     setUploading(true);
+    let successCount = 0;
+    let totalItems = 0;
+    let lastListId: string | null = null;
 
-    try {
-      // Upload file to storage
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("price-pdfs")
-        .upload(filePath, file);
+    for (const file of pdfFiles) {
+      try {
+        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
+        if (uploadError) throw uploadError;
 
-      if (uploadError) throw uploadError;
+        const { data: priceList, error: plError } = await supabase
+          .from("price_lists")
+          .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
+          .select()
+          .single();
+        if (plError) throw plError;
 
-      // Create price list record
-      const { data: priceList, error: plError } = await supabase
-        .from("price_lists")
-        .insert({
-          user_id: user.id,
-          name: file.name.replace(".pdf", ""),
-          file_path: filePath,
-          status: "pending",
-        })
-        .select()
-        .single();
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
+          reader.readAsDataURL(file);
+        });
 
-      if (plError) throw plError;
-
-      // Read PDF as base64 and send to edge function for AI parsing
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const text = reader.result as string;
-        const base64 = text.split(",")[1];
-
-        try {
-          const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
-            body: {
-              priceListId: priceList.id,
-              fileBase64: base64,
-            },
-          });
-
-          if (error) throw error;
-
-          toast.success(`Распознано ${data?.itemCount || 0} услуг`);
-          fetchPriceLists();
-          setSelectedList(priceList.id);
-        } catch (err: any) {
-          toast.error("Ошибка распознавания: " + (err.message || "неизвестная ошибка"));
-          fetchPriceLists();
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      toast.error("Ошибка загрузки: " + err.message);
-    } finally {
-      setUploading(false);
+        const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
+          body: { priceListId: priceList.id, fileBase64: base64 },
+        });
+        if (error) throw error;
+        successCount++;
+        totalItems += data?.itemCount || 0;
+        lastListId = priceList.id;
+      } catch (err: any) {
+        toast.error(`Ошибка «${file.name}»: ${err.message || "неизвестная ошибка"}`);
+      }
     }
+
+    if (successCount > 0) {
+      toast.success(`Загружено ${successCount} файл(ов), распознано ${totalItems} услуг`);
+      fetchPriceLists();
+      if (lastListId) setSelectedList(lastListId);
+    }
+    setUploading(false);
+    e.target.value = "";
   };
 
   const startEdit = (item: PriceItem) => {
@@ -252,6 +244,7 @@ export default function PriceListsPage() {
           <input
             type="file"
             accept=".pdf"
+            multiple
             onChange={handleUpload}
             className="absolute inset-0 opacity-0 cursor-pointer"
             disabled={uploading}
