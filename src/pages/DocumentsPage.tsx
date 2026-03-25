@@ -2,7 +2,8 @@ import { useState, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   FileText, Download, Eye, Calendar, Plus, Send, CheckCircle, Loader2,
-  ExternalLink, ClipboardList, Receipt, BarChart3, Printer, Filter
+  ExternalLink, ClipboardList, Receipt, BarChart3, Printer, Filter,
+  ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
