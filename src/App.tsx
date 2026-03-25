@@ -18,6 +18,7 @@ import PriceListsPage from "@/pages/PriceListsPage";
 import ClientEstimatePage from "@/pages/ClientEstimatePage";
 import ContractSignPage from "@/pages/ContractSignPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import MarketplacePage from "@/pages/MarketplacePage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
