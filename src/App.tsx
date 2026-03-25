@@ -13,6 +13,7 @@ import DocumentsPage from "@/pages/DocumentsPage";
 import ClimbersPage from "@/pages/ClimbersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AuthPage from "@/pages/AuthPage";
+import PriceListsPage from "@/pages/PriceListsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
