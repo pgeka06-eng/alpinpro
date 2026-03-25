@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, ChevronRight, Users, Repeat, Calendar,
-  Loader2, ArrowRight, Clock, CheckCircle, Briefcase, FileText
+  Loader2, ArrowRight, Clock, CheckCircle, Briefcase, FileText, Camera, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
