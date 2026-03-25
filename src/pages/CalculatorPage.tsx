@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp, ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check } from "lucide-react";
+import { Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp, ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
