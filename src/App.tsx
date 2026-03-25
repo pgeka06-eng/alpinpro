@@ -18,6 +18,7 @@ import PriceListsPage from "@/pages/PriceListsPage";
 import ClientEstimatePage from "@/pages/ClientEstimatePage";
 import ContractSignPage from "@/pages/ContractSignPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import MarketplacePage from "@/pages/MarketplacePage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/estimate" element={<ClientEstimatePage />} />
             <Route path="/contract" element={<ContractSignPage />} />
+            <Route path="/marketplace" element={<MarketplacePage />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/calculator" element={<CalculatorPage />} />

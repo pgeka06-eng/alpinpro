@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_requests: {
+        Row: {
+          client_name: string
+          client_phone: string
+          climber_user_id: string
+          created_at: string
+          id: string
+          message: string | null
+          status: string
+          work_type: string | null
+        }
+        Insert: {
+          client_name: string
+          client_phone: string
+          climber_user_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          work_type?: string | null
+        }
+        Update: {
+          client_name?: string
+          client_phone?: string
+          climber_user_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          work_type?: string | null
+        }
+        Relationships: []
+      }
       contracts: {
         Row: {
           client_email: string | null
