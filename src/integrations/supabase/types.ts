@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      estimates: {
+        Row: {
+          base_price: number
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          coeff_complexity: number
+          coeff_height: number
+          coeff_season: number
+          coeff_urgency: number
+          created_at: string
+          description: string | null
+          id: string
+          service_name: string
+          signed_at: string | null
+          signed_device: string | null
+          signed_ip: string | null
+          signed_user_agent: string | null
+          status: string
+          token: string
+          total_coeff: number
+          total_price: number
+          unit: string
+          updated_at: string
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          base_price: number
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          coeff_complexity?: number
+          coeff_height?: number
+          coeff_season?: number
+          coeff_urgency?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          service_name: string
+          signed_at?: string | null
+          signed_device?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          status?: string
+          token?: string
+          total_coeff?: number
+          total_price: number
+          unit: string
+          updated_at?: string
+          user_id: string
+          volume: number
+        }
+        Update: {
+          base_price?: number
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          coeff_complexity?: number
+          coeff_height?: number
+          coeff_season?: number
+          coeff_urgency?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          service_name?: string
+          signed_at?: string | null
+          signed_device?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          status?: string
+          token?: string
+          total_coeff?: number
+          total_price?: number
+          unit?: string
+          updated_at?: string
+          user_id?: string
+          volume?: number
+        }
+        Relationships: []
+      }
       price_history: {
         Row: {
           changed_by: string
