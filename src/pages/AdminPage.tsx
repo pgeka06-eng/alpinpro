@@ -38,6 +38,7 @@ export default function AdminPage() {
   const [editingCoeffs, setEditingCoeffs] = useState(false);
   const [roleDialogUser, setRoleDialogUser] = useState<any>(null);
   const [newRole, setNewRole] = useState<AppRole>("climber");
+  const [activityUser, setActivityUser] = useState<any>(null);
 
   // ─── Queries ────
   const { data: profiles = [] } = useQuery({
