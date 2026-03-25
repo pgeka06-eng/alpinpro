@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Calculator, ClipboardList, Wallet, FileText, Users,
   Settings, ChevronLeft, ChevronRight, HardHat, LogOut, Shield, Receipt,
-  Menu, X,
+  Menu, X, Store, MessageSquareText,
 } from "lucide-react";
 
 const navItems = [
@@ -14,7 +14,9 @@ const navItems = [
   { to: "/accounting", icon: Wallet, label: "Бухгалтерия", roles: ["admin", "manager", "climber"] },
   { to: "/documents", icon: FileText, label: "Документы", roles: ["admin", "manager", "climber"] },
   { to: "/price-lists", icon: Receipt, label: "Прайс-листы", roles: ["admin", "manager", "climber"] },
+  { to: "/requests", icon: MessageSquareText, label: "Заявки", roles: ["admin", "manager", "climber"] },
   { to: "/climbers", icon: Users, label: "Альпинисты", roles: ["admin", "manager"] },
+  { to: "/marketplace", icon: Store, label: "Маркет", roles: ["admin", "manager", "climber"] },
   { to: "/admin", icon: Shield, label: "Админ-панель", roles: ["admin"] },
   { to: "/settings", icon: Settings, label: "Настройки", roles: ["admin", "manager", "climber"] },
 ];

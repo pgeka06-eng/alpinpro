@@ -110,6 +110,9 @@ export default function AuthPage() {
           </div>
           <h1 className="text-2xl font-bold text-foreground">AlpinPro</h1>
           <p className="text-muted-foreground text-sm mt-1">Платформа для высотных работ</p>
+          <a href="/marketplace" className="inline-flex items-center gap-1.5 mt-3 text-sm text-primary hover:underline">
+            🏔️ Найти альпиниста на маркете →
+          </a>
         </div>
 
         <div className="bg-card rounded-xl border border-border p-6 space-y-6">
