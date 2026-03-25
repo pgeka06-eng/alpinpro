@@ -40,6 +40,8 @@ export default function AdminPage() {
   const [newRole, setNewRole] = useState<AppRole>("climber");
   const [activityUser, setActivityUser] = useState<any>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemForm, setEditItemForm] = useState({ service_name: "", unit: "", price: 0 });
   // ─── Queries ────
   const { data: profiles = [] } = useQuery({
     queryKey: ["admin-profiles"],
@@ -519,15 +521,51 @@ export default function AdminPage() {
                 </div>
                 <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
                   {items.map((item: any) => (
-                    <div key={item.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                      <div className="flex items-center gap-2">
-                        {item.is_verified ? <CheckCircle className="w-3.5 h-3.5 text-success" /> : <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30" />}
-                        <span className="text-card-foreground">{item.service_name}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground text-xs">{item.unit}</span>
-                        <span className="font-mono font-semibold">{Number(item.price).toLocaleString("ru-RU")} ₽</span>
-                      </div>
+                    <div key={item.id} className="px-4 py-2.5 text-sm">
+                      {editingItemId === item.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input className="h-8 text-sm flex-1" value={editItemForm.service_name}
+                            onChange={(e) => setEditItemForm((f) => ({ ...f, service_name: e.target.value }))} />
+                          <Input className="h-8 text-sm w-20" value={editItemForm.unit}
+                            onChange={(e) => setEditItemForm((f) => ({ ...f, unit: e.target.value }))} />
+                          <Input className="h-8 text-sm w-28 font-mono" type="number" value={editItemForm.price}
+                            onChange={(e) => setEditItemForm((f) => ({ ...f, price: Number(e.target.value) }))} />
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => {
+                            await supabase.from("price_items").update({
+                              service_name: editItemForm.service_name,
+                              unit: editItemForm.unit,
+                              price: editItemForm.price,
+                              is_verified: true,
+                            }).eq("id", item.id);
+                            setEditingItemId(null);
+                            queryClient.invalidateQueries({ queryKey: ["admin-price-items"] });
+                            toast.success("Сохранено");
+                          }}><Save className="w-3.5 h-3.5 text-success" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingItemId(null)}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {item.is_verified ? <CheckCircle className="w-3.5 h-3.5 text-success" /> : <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30" />}
+                            <span className="text-card-foreground">{item.service_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground text-xs">{item.unit}</span>
+                            <span className="font-mono font-semibold">{Number(item.price).toLocaleString("ru-RU")} ₽</span>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                              setEditingItemId(item.id);
+                              setEditItemForm({ service_name: item.service_name, unit: item.unit, price: Number(item.price) });
+                            }}><Edit2 className="w-3.5 h-3.5" /></Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={async () => {
+                              await supabase.from("price_items").delete().eq("id", item.id);
+                              queryClient.invalidateQueries({ queryKey: ["admin-price-items"] });
+                              toast.success("Удалено");
+                            }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {items.length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">Нет услуг</p>}
