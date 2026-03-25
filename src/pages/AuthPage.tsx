@@ -113,63 +113,81 @@ export default function AuthPage() {
         </div>
 
         <div className="bg-card rounded-xl border border-border p-6 space-y-6">
-          <div className="flex rounded-lg bg-muted p-1">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                isLogin ? "bg-card text-card-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              Вход
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                !isLogin ? "bg-card text-card-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              Регистрация
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label>ФИО</Label>
-                <Input
-                  placeholder="Иванов Алексей Петрович"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
+          {showForgot ? (
+            <>
+              <div className="text-center">
+                <KeyRound className="w-8 h-8 text-primary mx-auto mb-2" />
+                <h2 className="font-semibold text-card-foreground">Восстановление пароля</h2>
+                <p className="text-muted-foreground text-xs mt-1">Введите email для получения ссылки сброса</p>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                placeholder="email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Пароль</Label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
-              {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-              {loading ? "Загрузка..." : isLogin ? "Войти" : "Зарегистрироваться"}
-            </Button>
-          </form>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                  {loading ? "Отправка..." : "Отправить ссылку"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setShowForgot(false)}>
+                  Назад к входу
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="flex rounded-lg bg-muted p-1">
+                <button
+                  onClick={() => setIsLogin(true)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+                    isLogin ? "bg-card text-card-foreground shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  Вход
+                </button>
+                <button
+                  onClick={() => setIsLogin(false)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+                    !isLogin ? "bg-card text-card-foreground shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  Регистрация
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label>ФИО</Label>
+                    <Input placeholder="Иванов Алексей Петрович" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Пароль</Label>
+                  <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                </div>
+                <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
+                  {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                  {loading ? "Загрузка..." : isLogin ? "Войти" : "Зарегистрироваться"}
+                </Button>
+              </form>
+
+              {isLogin && (
+                <div className="flex flex-col gap-2">
+                  <Button variant="link" className="text-xs text-muted-foreground" onClick={() => setShowForgot(true)}>
+                    Забыли пароль?
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleResendConfirmation} disabled={resending || !email}>
+                    <MailCheck className="w-4 h-4" />
+                    {resending ? "Отправка..." : "Отправить подтверждение повторно"}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </motion.div>
     </div>
