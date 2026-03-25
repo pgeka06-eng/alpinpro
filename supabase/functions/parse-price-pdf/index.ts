@@ -23,7 +23,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify user
     const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -34,23 +33,22 @@ serve(async (req) => {
       });
     }
 
-    const { priceListId, fileContent } = await req.json();
+    const { priceListId, fileBase64 } = await req.json();
 
-    if (!priceListId || !fileContent) {
-      return new Response(JSON.stringify({ error: 'Missing priceListId or fileContent' }), {
+    if (!priceListId || !fileBase64) {
+      return new Response(JSON.stringify({ error: 'Missing priceListId or fileBase64' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Update status to parsing
     await supabase.from('price_lists').update({ status: 'parsing' }).eq('id', priceListId);
 
-    // Use AI to parse the text content
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    // Send PDF as inline_data to Gemini which supports native PDF parsing
     const aiResponse = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -58,23 +56,34 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: `Ты парсер прайс-листов для промышленных альпинистов. Извлеки из текста список услуг.
-Верни ТОЛЬКО JSON массив объектов с полями:
+            content: `Ты парсер прайс-листов для промышленных альпинистов. Извлеки из PDF список услуг.
+Верни JSON объект с полем "items" — массив объектов:
 - service_name: название услуги (строка)
 - unit: единица измерения (м², п.м., шт, м.п., и т.д.)
 - price: цена за единицу (число)
 - description: краткое описание если есть (строка или null)
 
 Если не можешь разобрать цену — ставь 0. Если не можешь определить единицу — ставь "шт".
-Верни ТОЛЬКО валидный JSON массив, без markdown, без пояснений.`,
+Верни ТОЛЬКО валидный JSON объект с полем items.`,
           },
           {
             role: 'user',
-            content: `Распознай услуги из этого прайс-листа:\n\n${fileContent}`,
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:application/pdf;base64,${fileBase64}`,
+                },
+              },
+              {
+                type: 'text',
+                text: 'Распознай все услуги и цены из этого прайс-листа PDF.',
+              },
+            ],
           },
         ],
         response_format: { type: 'json_object' },
@@ -91,12 +100,13 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '[]';
+    const content = aiData.choices?.[0]?.message?.content || '{}';
 
     let items: any[];
     try {
       const parsed = JSON.parse(content);
       items = Array.isArray(parsed) ? parsed : parsed.items || parsed.services || Object.values(parsed)[0] || [];
+      if (!Array.isArray(items)) items = [];
     } catch {
       console.error('Failed to parse AI response:', content);
       await supabase.from('price_lists').update({ status: 'error' }).eq('id', priceListId);
@@ -105,7 +115,6 @@ serve(async (req) => {
       });
     }
 
-    // Insert parsed items
     if (items.length > 0) {
       const insertData = items.map((item: any, index: number) => ({
         price_list_id: priceListId,
@@ -127,7 +136,6 @@ serve(async (req) => {
       }
     }
 
-    // Update status
     await supabase.from('price_lists').update({ status: 'parsed' }).eq('id', priceListId);
 
     return new Response(JSON.stringify({ success: true, itemCount: items.length }), {
