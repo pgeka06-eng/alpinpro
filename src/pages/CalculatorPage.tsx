@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SendEstimateDialog } from "@/components/SendEstimateDialog";
 
 interface ServiceItem {
   id: string;
