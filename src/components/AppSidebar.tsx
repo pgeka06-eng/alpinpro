@@ -12,6 +12,7 @@ const navItems = [
   { to: "/calculator", icon: Calculator, label: "Калькулятор", roles: ["admin", "manager", "climber"] },
   { to: "/orders", icon: ClipboardList, label: "Заказы", roles: ["admin", "manager", "climber"] },
   { to: "/accounting", icon: Wallet, label: "Бухгалтерия", roles: ["admin", "manager", "climber"] },
+  { to: "/sites", icon: Building2, label: "Объекты", roles: ["admin", "manager", "climber"] },
   { to: "/documents", icon: FileText, label: "Документы", roles: ["admin", "manager", "climber"] },
   { to: "/price-lists", icon: Receipt, label: "Прайс-листы", roles: ["admin", "manager", "climber"] },
   { to: "/requests", icon: MessageSquareText, label: "Заявки", roles: ["admin", "manager", "climber"] },
