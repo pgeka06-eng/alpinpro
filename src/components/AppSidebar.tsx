@@ -14,6 +14,7 @@ import {
   HardHat,
   LogOut,
   Shield,
+  Receipt,
 } from "lucide-react";
 
 const navItems = [
