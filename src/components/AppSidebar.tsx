@@ -25,6 +25,7 @@ const navItems = [
   { to: "/documents", icon: FileText, label: "Документы", roles: ["admin", "manager", "climber"] },
   { to: "/price-lists", icon: Receipt, label: "Прайс-листы", roles: ["admin", "manager", "climber"] },
   { to: "/climbers", icon: Users, label: "Альпинисты", roles: ["admin", "manager"] },
+  { to: "/admin", icon: Shield, label: "Админ-панель", roles: ["admin"] },
   { to: "/settings", icon: Settings, label: "Настройки", roles: ["admin", "manager", "climber"] },
 ];
 
