@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp, ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp,
+  ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers,
+  BookmarkPlus, Bookmark, Star, Trash2, Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +13,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SendEstimateDialog } from "@/components/SendEstimateDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface ServiceItem {
   id: string;
@@ -68,6 +77,10 @@ export default function CalculatorPage() {
   const [selectedPriceList, setSelectedPriceList] = useState("");
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDesc, setTemplateDesc] = useState("");
 
   // Cost settings
   interface CostData {
@@ -196,6 +209,80 @@ export default function CalculatorPage() {
     };
   }, [service, volume, urgency, complexity, height, season]);
 
+  // Templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ["service-templates", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("service_templates").select("*").order("use_count", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const saveTemplateMutation = useMutation({
+    mutationFn: async () => {
+      if (!service || !volume) throw new Error("Выберите услугу и объём");
+      const { error } = await supabase.from("service_templates").insert({
+        user_id: user!.id,
+        name: templateName.trim(),
+        description: templateDesc.trim() || null,
+        items: [{ service_id: service.id, service_name: service.service_name, unit: service.unit, price: service.price, volume: Number(volume) }],
+        total_base_price: service.price * Number(volume),
+        coefficients: { urgency, complexity, height, season },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-templates"] });
+      toast.success("Шаблон сохранён");
+      setSaveTemplateOpen(false);
+      setTemplateName("");
+      setTemplateDesc("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("service_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-templates"] });
+      toast.success("Шаблон удалён");
+    },
+  });
+
+  const applyTemplate = async (tpl: any) => {
+    const coeffs = tpl.coefficients as any;
+    setUrgency(coeffs.urgency ?? 0);
+    setComplexity(coeffs.complexity ?? 0);
+    setHeight(coeffs.height ?? 0);
+    setSeason(coeffs.season ?? 0);
+
+    const items = tpl.items as any[];
+    if (items.length > 0) {
+      const item = items[0];
+      // Try to find matching service
+      const found = services.find((s) => s.service_name === item.service_name || s.id === item.service_id);
+      if (found) {
+        setSelectedService(found.id);
+      }
+      setVolume(String(item.volume || ""));
+    }
+
+    // Increment use_count
+    await supabase.from("service_templates").update({ use_count: (tpl.use_count || 0) + 1 }).eq("id", tpl.id);
+    queryClient.invalidateQueries({ queryKey: ["service-templates"] });
+    toast.success(`Шаблон «${tpl.name}» применён`);
+  };
+
+  const toggleFavorite = async (tpl: any) => {
+    await supabase.from("service_templates").update({ is_favorite: !tpl.is_favorite }).eq("id", tpl.id);
+    queryClient.invalidateQueries({ queryKey: ["service-templates"] });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -206,10 +293,67 @@ export default function CalculatorPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Калькулятор стоимости</h1>
-        <p className="text-muted-foreground text-sm mt-1">Быстрый расчёт стоимости высотных работ</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Калькулятор стоимости</h1>
+          <p className="text-muted-foreground text-sm mt-1">Быстрый расчёт стоимости высотных работ</p>
+        </div>
+        {service && volume && (
+          <Button variant="outline" className="gap-2" onClick={() => { setTemplateName(service.service_name + " " + volume + service.unit); setSaveTemplateOpen(true); }}>
+            <BookmarkPlus className="w-4 h-4" /> Сохранить шаблон
+          </Button>
+        )}
       </div>
+
+      {/* Templates */}
+      {templates.length > 0 && (
+        <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-card-foreground">Шаблоны — 1 клик</span>
+            <span className="text-xs text-muted-foreground ml-auto">{templates.length} шаблонов</span>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {([...templates] as any[])
+              .sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0) || (b.use_count || 0) - (a.use_count || 0))
+              .map((tpl: any) => {
+                const items = tpl.items as any[];
+                const itemSummary = items.map((it: any) => `${it.service_name} ${it.volume}${it.unit}`).join(" + ");
+                return (
+                  <div key={tpl.id} className="group relative">
+                    <button
+                      onClick={() => applyTemplate(tpl)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-all text-left"
+                    >
+                      {tpl.is_favorite && <Star className="w-3 h-3 text-warning fill-warning" />}
+                      <div>
+                        <p className="text-xs font-medium text-card-foreground">{tpl.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{itemSummary}</p>
+                        {tpl.total_base_price > 0 && (
+                          <p className="text-[10px] font-mono text-primary">{Number(tpl.total_base_price).toLocaleString("ru")} ₽</p>
+                        )}
+                      </div>
+                    </button>
+                    <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5">
+                      <button
+                        onClick={() => toggleFavorite(tpl)}
+                        className="w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center hover:bg-warning/20"
+                      >
+                        <Star className={`w-2.5 h-2.5 ${tpl.is_favorite ? "text-warning fill-warning" : "text-muted-foreground"}`} />
+                      </button>
+                      <button
+                        onClick={() => { if (confirm("Удалить шаблон?")) deleteTemplateMutation.mutate(tpl.id); }}
+                        className="w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center hover:bg-destructive/20"
+                      >
+                        <Trash2 className="w-2.5 h-2.5 text-destructive" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* Price list selector */}
       {usingDb && priceLists.length > 0 && (
@@ -597,6 +741,56 @@ export default function CalculatorPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Save template dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Сохранить как шаблон</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название шаблона *</Label>
+              <Input
+                placeholder='Напр. "Швы 100м + герметик"'
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Input
+                placeholder="Очистка крыши стандарт..."
+                value={templateDesc}
+                onChange={(e) => setTemplateDesc(e.target.value)}
+              />
+            </div>
+            {service && (
+              <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-xs">
+                <p className="font-medium text-card-foreground">{service.service_name}</p>
+                <p className="text-muted-foreground">{service.price.toLocaleString("ru")} ₽/{service.unit} × {volume} {service.unit}</p>
+                <p className="text-muted-foreground">
+                  Коэффициенты: ×{coeffValues.urgency[urgency]} / ×{coeffValues.complexity[complexity]} / ×{coeffValues.height[height]} / ×{coeffValues.season[season]}
+                </p>
+                {calculation && (
+                  <p className="font-mono font-semibold text-primary">Итого: {calculation.total.toLocaleString("ru")} ₽</p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveTemplateOpen(false)}>Отмена</Button>
+            <Button
+              onClick={() => saveTemplateMutation.mutate()}
+              disabled={!templateName.trim() || saveTemplateMutation.isPending}
+              className="gap-2"
+            >
+              {saveTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Bookmark className="w-4 h-4" /> Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

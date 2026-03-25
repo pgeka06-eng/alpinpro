@@ -820,6 +820,48 @@ export type Database = {
           },
         ]
       }
+      service_templates: {
+        Row: {
+          coefficients: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_favorite: boolean
+          items: Json
+          name: string
+          total_base_price: number
+          updated_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          coefficients?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_favorite?: boolean
+          items?: Json
+          name: string
+          total_base_price?: number
+          updated_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          coefficients?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_favorite?: boolean
+          items?: Json
+          name?: string
+          total_base_price?: number
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       sites: {
         Row: {
           address: string
