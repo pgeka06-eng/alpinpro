@@ -118,18 +118,17 @@ export default function PriceListsPage() {
 
       if (plError) throw plError;
 
-      // Read PDF as text (send base64 to edge function which will use AI to parse)
+      // Read PDF as base64 and send to edge function for AI parsing
       const reader = new FileReader();
       reader.onload = async () => {
         const text = reader.result as string;
-        // Extract base64 content
         const base64 = text.split(",")[1];
 
         try {
           const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
             body: {
               priceListId: priceList.id,
-              fileContent: atob(base64).substring(0, 15000), // Send text content, limit to 15k chars
+              fileBase64: base64,
             },
           });
 
