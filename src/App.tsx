@@ -20,6 +20,7 @@ import ContractSignPage from "@/pages/ContractSignPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import MarketplacePage from "@/pages/MarketplacePage";
 import RequestsPage from "@/pages/RequestsPage";
+import SitesPage from "@/pages/SitesPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
