@@ -56,6 +56,7 @@ export default function CalculatorPage() {
   const [height, setHeight] = useState(0);
   const [season, setSeason] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showSendDialog, setShowSendDialog] = useState(false);
   const [usingDb, setUsingDb] = useState(false);
   const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPriceList, setSelectedPriceList] = useState("");
