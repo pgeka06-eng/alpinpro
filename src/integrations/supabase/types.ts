@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       climber_profiles: {
         Row: {
           avg_check: number
@@ -207,6 +243,81 @@ export type Database = {
           volume?: number
         }
         Relationships: []
+      }
+      orders: {
+        Row: {
+          client_id: string | null
+          climber_user_id: string | null
+          completed_date: string | null
+          created_at: string
+          description: string | null
+          estimate_id: string | null
+          id: string
+          is_repeat: boolean
+          order_number: string
+          scheduled_date: string | null
+          service_name: string
+          status: string
+          total_price: number
+          unit: string | null
+          updated_at: string
+          user_id: string
+          volume: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          climber_user_id?: string | null
+          completed_date?: string | null
+          created_at?: string
+          description?: string | null
+          estimate_id?: string | null
+          id?: string
+          is_repeat?: boolean
+          order_number: string
+          scheduled_date?: string | null
+          service_name: string
+          status?: string
+          total_price?: number
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+          volume?: number | null
+        }
+        Update: {
+          client_id?: string | null
+          climber_user_id?: string | null
+          completed_date?: string | null
+          created_at?: string
+          description?: string | null
+          estimate_id?: string | null
+          id?: string
+          is_repeat?: boolean
+          order_number?: string
+          scheduled_date?: string | null
+          service_name?: string
+          status?: string
+          total_price?: number
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_history: {
         Row: {
