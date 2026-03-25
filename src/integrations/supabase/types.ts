@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      climber_profiles: {
+        Row: {
+          avg_check: number
+          created_at: string
+          id: string
+          portfolio_urls: string[]
+          rating: number
+          reliability: number
+          total_orders: number
+          updated_at: string
+          user_id: string
+          work_types: string[]
+        }
+        Insert: {
+          avg_check?: number
+          created_at?: string
+          id?: string
+          portfolio_urls?: string[]
+          rating?: number
+          reliability?: number
+          total_orders?: number
+          updated_at?: string
+          user_id: string
+          work_types?: string[]
+        }
+        Update: {
+          avg_check?: number
+          created_at?: string
+          id?: string
+          portfolio_urls?: string[]
+          rating?: number
+          reliability?: number
+          total_orders?: number
+          updated_at?: string
+          user_id?: string
+          work_types?: string[]
+        }
+        Relationships: []
+      }
       contracts: {
         Row: {
           client_email: string | null
