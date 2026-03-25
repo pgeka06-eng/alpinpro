@@ -184,49 +184,61 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // ─── PDF Upload handler ────
+  // ─── PDF Upload handler (multiple files) ────
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (file.type !== "application/pdf") {
-      toast.error("Загрузите PDF файл");
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
+
+    const pdfFiles = Array.from(files).filter((f) => f.type === "application/pdf");
+    if (pdfFiles.length === 0) {
+      toast.error("Выберите PDF файлы");
       return;
     }
-    setUploadingPdf(true);
-    try {
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
-      if (uploadError) throw uploadError;
-
-      const { data: priceList, error: plError } = await supabase
-        .from("price_lists")
-        .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
-        .select()
-        .single();
-      if (plError) throw plError;
-
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        try {
-          const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
-            body: { priceListId: priceList.id, fileBase64: base64 },
-          });
-          if (error) throw error;
-          toast.success(`Распознано ${data?.itemCount || 0} услуг`);
-        } catch (err: any) {
-          toast.error("Ошибка распознавания: " + (err.message || "неизвестная ошибка"));
-        }
-        queryClient.invalidateQueries({ queryKey: ["admin-price-lists"] });
-        queryClient.invalidateQueries({ queryKey: ["admin-price-items"] });
-      };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      toast.error("Ошибка загрузки: " + err.message);
-    } finally {
-      setUploadingPdf(false);
-      e.target.value = "";
+    if (pdfFiles.length < files.length) {
+      toast.warning(`${files.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
     }
+
+    setUploadingPdf(true);
+    let successCount = 0;
+    let totalItems = 0;
+
+    for (const file of pdfFiles) {
+      try {
+        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
+        if (uploadError) throw uploadError;
+
+        const { data: priceList, error: plError } = await supabase
+          .from("price_lists")
+          .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
+          .select()
+          .single();
+        if (plError) throw plError;
+
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
+          reader.readAsDataURL(file);
+        });
+
+        const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
+          body: { priceListId: priceList.id, fileBase64: base64 },
+        });
+        if (error) throw error;
+        successCount++;
+        totalItems += data?.itemCount || 0;
+      } catch (err: any) {
+        toast.error(`Ошибка «${file.name}»: ${err.message || "неизвестная ошибка"}`);
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Загружено ${successCount} файл(ов), распознано ${totalItems} услуг`);
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-price-lists"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-price-items"] });
+    setUploadingPdf(false);
+    e.target.value = "";
   };
 
   const deletePriceList = async (id: string) => {
