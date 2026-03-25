@@ -184,6 +184,60 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // ─── PDF Upload handler ────
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Загрузите PDF файл");
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: priceList, error: plError } = await supabase
+        .from("price_lists")
+        .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
+        .select()
+        .single();
+      if (plError) throw plError;
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(",")[1];
+        try {
+          const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
+            body: { priceListId: priceList.id, fileBase64: base64 },
+          });
+          if (error) throw error;
+          toast.success(`Распознано ${data?.itemCount || 0} услуг`);
+        } catch (err: any) {
+          toast.error("Ошибка распознавания: " + (err.message || "неизвестная ошибка"));
+        }
+        queryClient.invalidateQueries({ queryKey: ["admin-price-lists"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-price-items"] });
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      toast.error("Ошибка загрузки: " + err.message);
+    } finally {
+      setUploadingPdf(false);
+      e.target.value = "";
+    }
+  };
+
+  const deletePriceList = async (id: string) => {
+    if (!confirm("Удалить прайс-лист и все его услуги?")) return;
+    await supabase.from("price_items").delete().eq("price_list_id", id);
+    await supabase.from("price_lists").delete().eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["admin-price-lists"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-price-items"] });
+    toast.success("Прайс удалён");
+  };
+
   // ─── Computed analytics ────
   const totalRevenue = payments.reduce((s, p: any) => s + Number(p.amount), 0);
   const totalExpenses = expenses.reduce((s, e: any) => s + Number(e.amount), 0);
