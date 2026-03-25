@@ -335,7 +335,7 @@ export default function OrdersPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      {["№", "Дата", "Клиент", "Услуга", "Альпинист", "Сумма", "Статус", ""].map((h) => (
+                      {["№", "Дата", "Клиент", "Услуга", "Альпинист", "Сумма", "Статус", "Фото", ""].map((h) => (
                         <th key={h} className="text-left text-xs font-medium text-muted-foreground px-4 py-3">{h}</th>
                       ))}
                     </tr>
