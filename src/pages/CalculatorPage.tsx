@@ -168,10 +168,12 @@ export default function CalculatorPage() {
     const belowMin = total < MIN_ORDER;
     if (belowMin) total = MIN_ORDER;
     const margin = (total - basePrice) / total;
+    const markup = basePrice > 0 ? (total - basePrice) / basePrice : 0;
     const profit = total - basePrice;
     const recommendedPrice = Math.round(basePrice / (1 - TARGET_MARGIN));
     const minAcceptablePrice = Math.round(basePrice / (1 - MIN_MARGIN));
     const minProfit = minAcceptablePrice - basePrice;
+    const minProfitAmount = Math.round(basePrice * (MIN_MARGIN / (1 - MIN_MARGIN)));
 
     let priceRating: "excellent" | "good" | "ok" | "low" | "danger";
     if (margin >= TARGET_MARGIN) priceRating = "excellent";
@@ -181,8 +183,8 @@ export default function CalculatorPage() {
     else priceRating = "danger";
 
     return {
-      lineDetails, basePrice, coeff, total, margin, profit, isCheap: margin < MIN_MARGIN,
-      belowMin, recommendedPrice, minAcceptablePrice, minProfit, priceRating,
+      lineDetails, basePrice, coeff, total, margin, markup, profit, isCheap: margin < MIN_MARGIN,
+      belowMin, recommendedPrice, minAcceptablePrice, minProfit, minProfitAmount, priceRating,
       breakdown: { urgency: urgencyCoeff, complexity: complexityCoeff, height: heightCoeff, season: seasonCoeff },
     };
   }, [lines, services, urgency, complexity, height, season]);
