@@ -424,6 +424,7 @@ export default function OrdersPage() {
                             </td>
                           </tr>
                         )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
