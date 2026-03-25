@@ -65,6 +65,7 @@ export default function CalculatorPage() {
   const [usingDb, setUsingDb] = useState(false);
   const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPriceList, setSelectedPriceList] = useState("");
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
   // Fetch price lists
   useEffect(() => {
