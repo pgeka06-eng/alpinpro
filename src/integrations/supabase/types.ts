@@ -344,6 +344,7 @@ export type Database = {
           payment_status: string
           scheduled_date: string | null
           service_name: string
+          site_id: string | null
           status: string
           total_price: number
           unit: string | null
@@ -367,6 +368,7 @@ export type Database = {
           payment_status?: string
           scheduled_date?: string | null
           service_name: string
+          site_id?: string | null
           status?: string
           total_price?: number
           unit?: string | null
@@ -390,6 +392,7 @@ export type Database = {
           payment_status?: string
           scheduled_date?: string | null
           service_name?: string
+          site_id?: string | null
           status?: string
           total_price?: number
           unit?: string | null
@@ -410,6 +413,13 @@ export type Database = {
             columns: ["estimate_id"]
             isOneToOne: false
             referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
             referencedColumns: ["id"]
           },
         ]
@@ -667,6 +677,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sites: {
+        Row: {
+          address: string
+          city: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          notes: string | null
+          photo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          city?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          city?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
