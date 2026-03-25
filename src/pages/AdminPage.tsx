@@ -38,6 +38,7 @@ export default function AdminPage() {
   const [editingCoeffs, setEditingCoeffs] = useState(false);
   const [roleDialogUser, setRoleDialogUser] = useState<any>(null);
   const [newRole, setNewRole] = useState<AppRole>("climber");
+  const [activityUser, setActivityUser] = useState<any>(null);
 
   // ─── Queries ────
   const { data: profiles = [] } = useQuery({
@@ -169,6 +170,18 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
       toast.success("Отзыв удалён");
     },
+  });
+
+  const toggleBlockMutation = useMutation({
+    mutationFn: async ({ userId, blocked }: { userId: string; blocked: boolean }) => {
+      const { error } = await supabase.from("profiles").update({ is_blocked: blocked }).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      toast.success(vars.blocked ? "Пользователь заблокирован" : "Пользователь разблокирован");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // ─── Computed analytics ────
@@ -339,15 +352,19 @@ export default function AdminPage() {
           <div className="space-y-2">
             {filteredProfiles.map((p: any) => {
               const userRole = getUserRole(p.user_id);
+              const isBlocked = p.is_blocked;
               return (
                 <motion.div key={p.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-card rounded-xl border border-border p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
+                  className={`bg-card rounded-xl border p-4 flex items-center justify-between transition-colors ${isBlocked ? "border-destructive/30 opacity-70" : "border-border hover:border-primary/20"}`}>
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                      {(p.full_name || "?")[0].toUpperCase()}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isBlocked ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+                      {isBlocked ? <Ban className="w-5 h-5" /> : (p.full_name || "?")[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-card-foreground">{p.full_name || "Без имени"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-card-foreground">{p.full_name || "Без имени"}</p>
+                        {isBlocked && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Заблокирован</Badge>}
+                      </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         {p.phone && <span className="text-xs text-muted-foreground">{p.phone}</span>}
                         {p.city && <span className="text-xs text-muted-foreground">{p.city}</span>}
@@ -358,9 +375,20 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2">
                     {userRole && <Badge variant={roleBadgeVariant[userRole] || "outline"}>{roleLabels[userRole] || userRole}</Badge>}
                     {!userRole && <Badge variant="outline" className="text-muted-foreground">Нет роли</Badge>}
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => setActivityUser(p)}>
+                      <Eye className="w-3.5 h-3.5" /> Активность
+                    </Button>
                     <Button variant="ghost" size="sm" className="gap-1" onClick={() => { setRoleDialogUser(p); setNewRole(userRole || "climber"); }}>
                       <Edit2 className="w-3.5 h-3.5" /> Роль
                     </Button>
+                    {p.user_id !== user?.id && (
+                      <Button variant="ghost" size="sm"
+                        className={`gap-1 ${isBlocked ? "text-success hover:text-success" : "text-destructive hover:text-destructive"}`}
+                        onClick={() => toggleBlockMutation.mutate({ userId: p.user_id, blocked: !isBlocked })}
+                        disabled={toggleBlockMutation.isPending}>
+                        {isBlocked ? <><CheckCircle className="w-3.5 h-3.5" /> Разблокировать</> : <><Ban className="w-3.5 h-3.5" /> Блокировать</>}
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -561,6 +589,90 @@ export default function AdminPage() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Activity dialog */}
+      <Dialog open={!!activityUser} onOpenChange={() => setActivityUser(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Активность: {activityUser?.full_name || "Без имени"}</DialogTitle></DialogHeader>
+          {activityUser && (() => {
+            const uid = activityUser.user_id;
+            const userOrders = orders.filter((o: any) => o.user_id === uid || o.climber_user_id === uid);
+            const userEstimates = estimates.filter((e: any) => e.user_id === uid);
+            const userContracts = contracts.filter((c: any) => c.user_id === uid);
+            const userPayments = payments.filter((p: any) => p.user_id === uid);
+            const userExpenses = expenses.filter((e: any) => e.user_id === uid);
+            const totalRev = userPayments.reduce((s: number, p: any) => s + Number(p.amount), 0);
+            const totalExp = userExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { label: "Заказы", value: userOrders.length },
+                    { label: "Сметы", value: userEstimates.length },
+                    { label: "Договоры", value: userContracts.length },
+                    { label: "Доход", value: `${totalRev.toLocaleString("ru-RU")} ₽` },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-muted rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase">{s.label}</p>
+                      <p className="text-sm font-bold text-foreground mt-0.5">{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {userOrders.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Последние заказы</h4>
+                    <div className="space-y-1.5">
+                      {userOrders.slice(0, 5).map((o: any) => (
+                        <div key={o.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
+                          <div>
+                            <span className="font-medium text-card-foreground">{o.service_name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">#{o.order_number}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs">{Number(o.total_price).toLocaleString("ru-RU")} ₽</span>
+                            <Badge variant="outline" className="text-[10px]">{o.status}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {userEstimates.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Последние сметы</h4>
+                    <div className="space-y-1.5">
+                      {userEstimates.slice(0, 5).map((e: any) => (
+                        <div key={e.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
+                          <div>
+                            <span className="font-medium text-card-foreground">{e.client_name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">{e.service_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs">{Number(e.total_price).toLocaleString("ru-RU")} ₽</span>
+                            <Badge variant={e.status === "signed" ? "default" : "secondary"} className="text-[10px]">{e.status === "signed" ? "Подписана" : "Ожидание"}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {userOrders.length === 0 && userEstimates.length === 0 && (
+                  <p className="text-center py-4 text-sm text-muted-foreground">Нет активности</p>
+                )}
+
+                <div className="border-t border-border pt-3 text-xs text-muted-foreground">
+                  Регистрация: {format(parseISO(activityUser.created_at), "dd MMMM yyyy", { locale: ru })}
+                  {activityUser.is_blocked && <Badge variant="destructive" className="ml-2">Заблокирован</Badge>}
+                </div>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
