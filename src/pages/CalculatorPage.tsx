@@ -512,7 +512,7 @@ export default function CalculatorPage() {
                 </div>
 
                 {/* Smart metrics */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="bg-muted/30 rounded-lg p-2.5 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Маржа</p>
                     <p className={`text-lg font-bold font-mono ${
@@ -521,12 +521,32 @@ export default function CalculatorPage() {
                     }`}>{(calculation.margin * 100).toFixed(0)}%</p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Наценка</p>
+                    <p className={`text-lg font-bold font-mono ${
+                      calculation.markup >= 0.5 ? "text-success" :
+                      calculation.markup >= 0.3 ? "text-warning" : "text-destructive"
+                    }`}>{(calculation.markup * 100).toFixed(0)}%</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-2.5 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Прибыль</p>
                     <p className={`text-lg font-bold font-mono ${calculation.profit >= 0 ? "text-success" : "text-destructive"}`}>
                       {calculation.profit.toLocaleString("ru")} ₽
                     </p>
                   </div>
                 </div>
+
+                {/* Min profit threshold */}
+                {calculation.profit < calculation.minProfitAmount && (
+                  <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-2.5">
+                    <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-destructive">Прибыль ниже минимума</p>
+                      <p className="text-muted-foreground">
+                        Минимальная прибыль при марже {(MIN_MARGIN * 100)}%: <span className="font-mono font-semibold">{calculation.minProfitAmount.toLocaleString("ru")} ₽</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Cost breakdown */}
                 {costSettings && (costSettings.hourly_rate > 0 || costSettings.material_cost_per_unit > 0 || costSettings.crew_daily_wage > 0) && (() => {
