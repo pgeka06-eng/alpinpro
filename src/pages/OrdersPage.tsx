@@ -65,6 +65,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [clientDetailId, setClientDetailId] = useState<string | null>(null);
   const [tab, setTab] = useState("orders");
+  const [expandedPhotos, setExpandedPhotos] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     client_name: "", client_email: "", client_phone: "", client_company: "",
