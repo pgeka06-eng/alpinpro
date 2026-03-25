@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      contracts: {
+        Row: {
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          description: string | null
+          estimate_id: string | null
+          id: string
+          number: string
+          pdf_path: string | null
+          signed_at: string | null
+          signed_device: string | null
+          signed_ip: string | null
+          signed_user_agent: string | null
+          status: string
+          token: string
+          total_price: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          description?: string | null
+          estimate_id?: string | null
+          id?: string
+          number: string
+          pdf_path?: string | null
+          signed_at?: string | null
+          signed_device?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          status?: string
+          token?: string
+          total_price?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          description?: string | null
+          estimate_id?: string | null
+          id?: string
+          number?: string
+          pdf_path?: string | null
+          signed_at?: string | null
+          signed_device?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          status?: string
+          token?: string
+          total_price?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimates: {
         Row: {
           base_price: number

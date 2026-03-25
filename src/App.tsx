@@ -15,6 +15,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import AuthPage from "@/pages/AuthPage";
 import PriceListsPage from "@/pages/PriceListsPage";
 import ClientEstimatePage from "@/pages/ClientEstimatePage";
+import ContractSignPage from "@/pages/ContractSignPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/estimate" element={<ClientEstimatePage />} />
+            <Route path="/contract" element={<ContractSignPage />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/calculator" element={<CalculatorPage />} />
