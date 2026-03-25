@@ -15,6 +15,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import AuthPage from "@/pages/AuthPage";
 import PriceListsPage from "@/pages/PriceListsPage";
 import ClientEstimatePage from "@/pages/ClientEstimatePage";
+import ContractSignPage from "@/pages/ContractSignPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
