@@ -1,8 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, ChevronRight, Users, Repeat, Calendar,
-  Loader2, ArrowRight, Clock, CheckCircle, Briefcase, FileText
+  Loader2, ArrowRight, Clock, CheckCircle, Briefcase, FileText, Camera, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { OrderPhotos } from "@/components/OrderPhotos";
 
 const STATUS_FLOW = ["created", "agreed", "in_progress", "done"] as const;
 type OrderStatus = typeof STATUS_FLOW[number];
@@ -64,6 +65,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [clientDetailId, setClientDetailId] = useState<string | null>(null);
   const [tab, setTab] = useState("orders");
+  const [expandedPhotos, setExpandedPhotos] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     client_name: "", client_email: "", client_phone: "", client_company: "",
@@ -333,7 +335,7 @@ export default function OrdersPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      {["№", "Дата", "Клиент", "Услуга", "Альпинист", "Сумма", "Статус", ""].map((h) => (
+                      {["№", "Дата", "Клиент", "Услуга", "Альпинист", "Сумма", "Статус", "Фото", ""].map((h) => (
                         <th key={h} className="text-left text-xs font-medium text-muted-foreground px-4 py-3">{h}</th>
                       ))}
                     </tr>
@@ -344,8 +346,8 @@ export default function OrdersPage() {
                       const climberName = order.climber_user_id ? climberMap.get(order.climber_user_id) : null;
                       const nextStatus = getNextStatus(order.status);
                       return (
+                        <React.Fragment key={order.id}>
                         <motion.tr
-                          key={order.id}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: i * 0.02 }}
@@ -391,6 +393,17 @@ export default function OrdersPage() {
                             </Badge>
                           </td>
                           <td className="px-4 py-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => setExpandedPhotos(expandedPhotos === order.id ? null : order.id)}
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              {expandedPhotos === order.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3">
                             {nextStatus && (
                               <Button
                                 variant="ghost"
@@ -404,6 +417,14 @@ export default function OrdersPage() {
                             )}
                           </td>
                         </motion.tr>
+                        {expandedPhotos === order.id && (
+                          <tr>
+                            <td colSpan={9} className="px-4 py-4 bg-muted/20 border-b border-border">
+                              <OrderPhotos orderId={order.id} />
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
