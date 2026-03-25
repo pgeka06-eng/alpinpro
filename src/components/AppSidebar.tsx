@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Calculator, ClipboardList, Wallet, FileText, Users,
   Settings, ChevronLeft, ChevronRight, HardHat, LogOut, Shield, Receipt,
-  Menu, X, Store, MessageSquareText, Building2, UsersRound,
+  Menu, X, Store, MessageSquareText, Building2, UsersRound, Calendar,
 } from "lucide-react";
 
 const navItems = [
