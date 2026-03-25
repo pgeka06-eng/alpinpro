@@ -393,6 +393,17 @@ export default function OrdersPage() {
                             </Badge>
                           </td>
                           <td className="px-4 py-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => setExpandedPhotos(expandedPhotos === order.id ? null : order.id)}
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              {expandedPhotos === order.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3">
                             {nextStatus && (
                               <Button
                                 variant="ghost"
@@ -406,6 +417,13 @@ export default function OrdersPage() {
                             )}
                           </td>
                         </motion.tr>
+                        {expandedPhotos === order.id && (
+                          <tr>
+                            <td colSpan={9} className="px-4 py-4 bg-muted/20 border-b border-border">
+                              <OrderPhotos orderId={order.id} />
+                            </td>
+                          </tr>
+                        )}
                       );
                     })}
                   </tbody>
