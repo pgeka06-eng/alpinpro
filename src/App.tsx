@@ -23,6 +23,7 @@ import RequestsPage from "@/pages/RequestsPage";
 import SitesPage from "@/pages/SitesPage";
 import CrewPage from "@/pages/CrewPage";
 import PlanningPage from "@/pages/PlanningPage";
+import ClientsPage from "@/pages/ClientsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/planning" element={<PlanningPage />} />
               <Route path="/accounting" element={<AccountingPage />} />
+              <Route path="/clients" element={<ClientsPage />} />
               <Route path="/documents" element={<DocumentsPage />} />
               <Route path="/climbers" element={<ClimbersPage />} />
               <Route path="/price-lists" element={<PriceListsPage />} />
