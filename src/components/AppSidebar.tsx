@@ -4,13 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Calculator, ClipboardList, Wallet, FileText, Users,
   Settings, ChevronLeft, ChevronRight, HardHat, LogOut, Shield, Receipt,
-  Menu, X, Store, MessageSquareText, Building2, UsersRound,
+  Menu, X, Store, MessageSquareText, Building2, UsersRound, Calendar,
 } from "lucide-react";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Дашборд", roles: ["admin", "manager", "climber"] },
   { to: "/calculator", icon: Calculator, label: "Калькулятор", roles: ["admin", "manager", "climber"] },
   { to: "/orders", icon: ClipboardList, label: "Заказы", roles: ["admin", "manager", "climber"] },
+  { to: "/planning", icon: Calendar, label: "Планирование", roles: ["admin", "manager", "climber"] },
   { to: "/crew", icon: UsersRound, label: "Бригада", roles: ["admin", "manager"] },
   { to: "/accounting", icon: Wallet, label: "Бухгалтерия", roles: ["admin", "manager", "climber"] },
   { to: "/sites", icon: Building2, label: "Объекты", roles: ["admin", "manager", "climber"] },
