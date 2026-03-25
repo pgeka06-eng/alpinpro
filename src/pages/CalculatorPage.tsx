@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp,
   ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers,
-  BookmarkPlus, Bookmark, Star, Trash2, Zap, Plus, X,
+  BookmarkPlus, Bookmark, Star, Trash2, Zap, Plus, X, Percent, ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
