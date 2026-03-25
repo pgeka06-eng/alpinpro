@@ -455,18 +455,33 @@ export default function AdminPage() {
 
         {/* ─── PRICES ──── */}
         <TabsContent value="prices" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-card rounded-xl border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">Прайс-листов</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{priceLists.length}</p>
+          <div className="flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 mr-4">
+              <div className="bg-card rounded-xl border border-border p-4 text-center">
+                <p className="text-xs text-muted-foreground">Прайс-листов</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{priceLists.length}</p>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-4 text-center">
+                <p className="text-xs text-muted-foreground">Услуг</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{priceItems.length}</p>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-4 text-center">
+                <p className="text-xs text-muted-foreground">Верифицировано</p>
+                <p className="text-2xl font-bold text-success mt-1">{priceItems.filter((i: any) => i.is_verified).length}</p>
+              </div>
             </div>
-            <div className="bg-card rounded-xl border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">Услуг</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{priceItems.length}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">Верифицировано</p>
-              <p className="text-2xl font-bold text-success mt-1">{priceItems.filter((i: any) => i.is_verified).length}</p>
+            <div className="relative flex-shrink-0">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handlePdfUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                disabled={uploadingPdf}
+              />
+              <Button className="gap-2" disabled={uploadingPdf}>
+                {uploadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploadingPdf ? "Загрузка..." : "Загрузить PDF"}
+              </Button>
             </div>
           </div>
 
@@ -479,7 +494,15 @@ export default function AdminPage() {
                     <h3 className="text-sm font-semibold text-card-foreground">{pl.name}</h3>
                     <p className="text-xs text-muted-foreground">{items.length} услуг • {format(parseISO(pl.created_at), "dd.MM.yy")}</p>
                   </div>
-                  <Badge variant={pl.status === "parsed" ? "default" : "secondary"}>{pl.status === "parsed" ? "Активен" : pl.status}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={pl.status === "parsed" ? "default" : pl.status === "parsing" ? "outline" : "secondary"}>
+                      {pl.status === "parsed" ? "Активен" : pl.status === "parsing" ? "Распознавание..." : pl.status === "error" ? "Ошибка" : pl.status}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => deletePriceList(pl.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
                   {items.map((item: any) => (
@@ -502,7 +525,7 @@ export default function AdminPage() {
           {priceLists.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Receipt className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p>Нет прайс-листов</p>
+              <p>Загрузите PDF прайс-лист для автоматического распознавания услуг</p>
             </div>
           )}
         </TabsContent>
