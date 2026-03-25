@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp, ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp,
+  ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers,
+  BookmarkPlus, Bookmark, Star, Trash2, Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +13,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SendEstimateDialog } from "@/components/SendEstimateDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface ServiceItem {
   id: string;
