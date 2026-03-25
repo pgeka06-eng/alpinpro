@@ -12,6 +12,7 @@ import AccountingPage from "@/pages/AccountingPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import ClimbersPage from "@/pages/ClimbersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import AdminPage from "@/pages/AdminPage";
 import AuthPage from "@/pages/AuthPage";
 import PriceListsPage from "@/pages/PriceListsPage";
 import ClientEstimatePage from "@/pages/ClientEstimatePage";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/climbers" element={<ClimbersPage />} />
               <Route path="/price-lists" element={<PriceListsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
