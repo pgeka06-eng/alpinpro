@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, MapPin, Briefcase, TrendingUp, Shield, Camera, Plus, X,
-  ChevronLeft, Upload, Image, Loader2, Edit2, Check
+  ChevronLeft, Upload, Image, Loader2, Edit2, Check, MessageSquare,
+  ShieldCheck, Zap, Clock, HardHat
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
