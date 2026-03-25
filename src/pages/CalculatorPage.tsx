@@ -67,6 +67,41 @@ export default function CalculatorPage() {
   const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPriceList, setSelectedPriceList] = useState("");
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Cost settings
+  interface CostData {
+    hourly_rate: number;
+    material_cost_per_unit: number;
+    crew_daily_wage: number;
+    crew_size: number;
+    equipment_amortization: number;
+    transport_cost: number;
+    overhead_percent: number;
+    hours_per_unit: number;
+  }
+  const [costSettings, setCostSettings] = useState<CostData | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("cost_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setCostSettings({
+          hourly_rate: Number(data.hourly_rate),
+          material_cost_per_unit: Number(data.material_cost_per_unit),
+          crew_daily_wage: Number(data.crew_daily_wage),
+          crew_size: Number(data.crew_size),
+          equipment_amortization: Number(data.equipment_amortization),
+          transport_cost: Number(data.transport_cost),
+          overhead_percent: Number(data.overhead_percent),
+          hours_per_unit: Number(data.hours_per_unit),
+        });
+      });
+  }, [user]);
 
   // Fetch price lists
   useEffect(() => {
