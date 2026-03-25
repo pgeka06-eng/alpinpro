@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp, ShieldCheck, Lightbulb, Target } from "lucide-react";
+import { Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp, ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -62,6 +65,7 @@ export default function CalculatorPage() {
   const [usingDb, setUsingDb] = useState(false);
   const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPriceList, setSelectedPriceList] = useState("");
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
   // Fetch price lists
   useEffect(() => {
@@ -211,16 +215,44 @@ export default function CalculatorPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Услуга</Label>
-              <Select value={selectedService} onValueChange={setSelectedService}>
-                <SelectTrigger><SelectValue placeholder="Выберите услугу" /></SelectTrigger>
-                <SelectContent>
-                  {services.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.service_name} — {s.price.toLocaleString("ru")} ₽/{s.unit}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={servicePickerOpen} onOpenChange={setServicePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={servicePickerOpen}
+                    className="w-full justify-between font-normal h-10"
+                  >
+                    {service
+                      ? `${service.service_name} — ${service.price.toLocaleString("ru")} ₽/${service.unit}`
+                      : "Выберите услугу"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Поиск услуги..." />
+                    <CommandList>
+                      <CommandEmpty>Услуга не найдена</CommandEmpty>
+                      <CommandGroup>
+                        {services.map((s) => (
+                          <CommandItem
+                            key={s.id}
+                            value={s.service_name}
+                            onSelect={() => {
+                              setSelectedService(s.id);
+                              setServicePickerOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedService === s.id ? "opacity-100" : "opacity-0")} />
+                            {s.service_name} — {s.price.toLocaleString("ru")} ₽/{s.unit}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Объём {service ? `(${service.unit})` : ""}</Label>
