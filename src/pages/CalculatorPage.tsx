@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator, Send, AlertTriangle, Loader2, Database, Info, TrendingUp,
   ShieldCheck, Lightbulb, Target, ChevronsUpDown, Check, DollarSign, Layers,
-  BookmarkPlus, Bookmark, Star, Trash2, Zap, Plus, X,
+  BookmarkPlus, Bookmark, Star, Trash2, Zap, Plus, X, Percent, ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -168,10 +168,12 @@ export default function CalculatorPage() {
     const belowMin = total < MIN_ORDER;
     if (belowMin) total = MIN_ORDER;
     const margin = (total - basePrice) / total;
+    const markup = basePrice > 0 ? (total - basePrice) / basePrice : 0;
     const profit = total - basePrice;
     const recommendedPrice = Math.round(basePrice / (1 - TARGET_MARGIN));
     const minAcceptablePrice = Math.round(basePrice / (1 - MIN_MARGIN));
     const minProfit = minAcceptablePrice - basePrice;
+    const minProfitAmount = Math.round(basePrice * (MIN_MARGIN / (1 - MIN_MARGIN)));
 
     let priceRating: "excellent" | "good" | "ok" | "low" | "danger";
     if (margin >= TARGET_MARGIN) priceRating = "excellent";
@@ -181,8 +183,8 @@ export default function CalculatorPage() {
     else priceRating = "danger";
 
     return {
-      lineDetails, basePrice, coeff, total, margin, profit, isCheap: margin < MIN_MARGIN,
-      belowMin, recommendedPrice, minAcceptablePrice, minProfit, priceRating,
+      lineDetails, basePrice, coeff, total, margin, markup, profit, isCheap: margin < MIN_MARGIN,
+      belowMin, recommendedPrice, minAcceptablePrice, minProfit, minProfitAmount, priceRating,
       breakdown: { urgency: urgencyCoeff, complexity: complexityCoeff, height: heightCoeff, season: seasonCoeff },
     };
   }, [lines, services, urgency, complexity, height, season]);
@@ -510,7 +512,7 @@ export default function CalculatorPage() {
                 </div>
 
                 {/* Smart metrics */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="bg-muted/30 rounded-lg p-2.5 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Маржа</p>
                     <p className={`text-lg font-bold font-mono ${
@@ -519,12 +521,32 @@ export default function CalculatorPage() {
                     }`}>{(calculation.margin * 100).toFixed(0)}%</p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Наценка</p>
+                    <p className={`text-lg font-bold font-mono ${
+                      calculation.markup >= 0.5 ? "text-success" :
+                      calculation.markup >= 0.3 ? "text-warning" : "text-destructive"
+                    }`}>{(calculation.markup * 100).toFixed(0)}%</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-2.5 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Прибыль</p>
                     <p className={`text-lg font-bold font-mono ${calculation.profit >= 0 ? "text-success" : "text-destructive"}`}>
                       {calculation.profit.toLocaleString("ru")} ₽
                     </p>
                   </div>
                 </div>
+
+                {/* Min profit threshold */}
+                {calculation.profit < calculation.minProfitAmount && (
+                  <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-2.5">
+                    <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-destructive">Прибыль ниже минимума</p>
+                      <p className="text-muted-foreground">
+                        Минимальная прибыль при марже {(MIN_MARGIN * 100)}%: <span className="font-mono font-semibold">{calculation.minProfitAmount.toLocaleString("ru")} ₽</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Cost breakdown */}
                 {costSettings && (costSettings.hourly_rate > 0 || costSettings.material_cost_per_unit > 0 || costSettings.crew_daily_wage > 0) && (() => {
@@ -609,13 +631,19 @@ export default function CalculatorPage() {
                 </div>
 
                 {calculation.total < calculation.recommendedPrice && (
-                  <div className="flex items-start gap-2 bg-primary/5 border border-primary/15 rounded-lg p-3">
-                    <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <div className="text-xs space-y-1">
-                      <p className="font-medium text-card-foreground">Рекомендуемая цена</p>
-                      <p className="text-muted-foreground">
-                        Для маржи {(TARGET_MARGIN * 100)}% рекомендуем <span className="font-mono font-semibold text-primary">{calculation.recommendedPrice.toLocaleString("ru")} ₽</span>
-                      </p>
+                  <div className="bg-primary/5 border border-primary/15 rounded-lg p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1 flex-1">
+                        <p className="font-medium text-card-foreground">Рекомендуемая цена</p>
+                        <p className="text-muted-foreground">
+                          Для маржи {(TARGET_MARGIN * 100)}%: <span className="font-mono font-semibold text-primary">{calculation.recommendedPrice.toLocaleString("ru")} ₽</span>
+                          {" "}(наценка {(calculation.basePrice > 0 ? ((calculation.recommendedPrice - calculation.basePrice) / calculation.basePrice * 100).toFixed(0) : 0)}%)
+                        </p>
+                        <p className="text-muted-foreground">
+                          Минимум (маржа {(MIN_MARGIN * 100)}%): <span className="font-mono font-semibold">{calculation.minAcceptablePrice.toLocaleString("ru")} ₽</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
