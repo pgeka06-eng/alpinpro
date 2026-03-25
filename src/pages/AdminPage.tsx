@@ -172,6 +172,18 @@ export default function AdminPage() {
     },
   });
 
+  const toggleBlockMutation = useMutation({
+    mutationFn: async ({ userId, blocked }: { userId: string; blocked: boolean }) => {
+      const { error } = await supabase.from("profiles").update({ is_blocked: blocked }).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      toast.success(vars.blocked ? "Пользователь заблокирован" : "Пользователь разблокирован");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // ─── Computed analytics ────
   const totalRevenue = payments.reduce((s, p: any) => s + Number(p.amount), 0);
   const totalExpenses = expenses.reduce((s, e: any) => s + Number(e.amount), 0);
