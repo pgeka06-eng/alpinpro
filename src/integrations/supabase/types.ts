@@ -362,6 +362,56 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          climber_user_id: string
+          comment: string | null
+          created_at: string
+          estimate_id: string | null
+          id: string
+          punctuality_score: number
+          quality_score: number
+          rating: number
+          reviewer_email: string | null
+          reviewer_name: string
+          safety_score: number
+        }
+        Insert: {
+          climber_user_id: string
+          comment?: string | null
+          created_at?: string
+          estimate_id?: string | null
+          id?: string
+          punctuality_score?: number
+          quality_score?: number
+          rating: number
+          reviewer_email?: string | null
+          reviewer_name: string
+          safety_score?: number
+        }
+        Update: {
+          climber_user_id?: string
+          comment?: string | null
+          created_at?: string
+          estimate_id?: string | null
+          id?: string
+          punctuality_score?: number
+          quality_score?: number
+          rating?: number
+          reviewer_email?: string | null
+          reviewer_name?: string
+          safety_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
