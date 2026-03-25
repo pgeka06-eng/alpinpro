@@ -346,8 +346,8 @@ export default function OrdersPage() {
                       const climberName = order.climber_user_id ? climberMap.get(order.climber_user_id) : null;
                       const nextStatus = getNextStatus(order.status);
                       return (
+                        <React.Fragment key={order.id}>
                         <motion.tr
-                          key={order.id}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: i * 0.02 }}
