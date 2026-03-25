@@ -332,17 +332,73 @@ export default function CalculatorPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Маржа</span>
-                  <span className={`font-mono font-medium ${calculation.isCheap ? "text-destructive" : "text-success"}`}>
-                    {(calculation.margin * 100).toFixed(0)}%
-                  </span>
+                {/* ─── Smart metrics ──── */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-muted/30 rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Маржа</p>
+                    <p className={`text-lg font-bold font-mono ${
+                      calculation.priceRating === "excellent" ? "text-success" :
+                      calculation.priceRating === "good" ? "text-success" :
+                      calculation.priceRating === "ok" ? "text-warning" :
+                      "text-destructive"
+                    }`}>
+                      {(calculation.margin * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Прибыль</p>
+                    <p className={`text-lg font-bold font-mono ${calculation.profit >= 0 ? "text-success" : "text-destructive"}`}>
+                      {calculation.profit.toLocaleString("ru")} ₽
+                    </p>
+                  </div>
                 </div>
 
-                {calculation.isCheap && (
-                  <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>Маржа ниже {MIN_MARGIN * 100}%. Рекомендуем повысить цену.</span>
+                {/* Price rating indicator */}
+                <div className={`rounded-lg p-3 flex items-center gap-2.5 ${
+                  calculation.priceRating === "excellent" ? "bg-success/10 border border-success/20" :
+                  calculation.priceRating === "good" ? "bg-success/10 border border-success/20" :
+                  calculation.priceRating === "ok" ? "bg-warning/10 border border-warning/20" :
+                  calculation.priceRating === "low" ? "bg-destructive/10 border border-destructive/20" :
+                  "bg-destructive/15 border border-destructive/30"
+                }`}>
+                  {calculation.priceRating === "excellent" && <ShieldCheck className="w-4 h-4 text-success flex-shrink-0" />}
+                  {calculation.priceRating === "good" && <TrendingUp className="w-4 h-4 text-success flex-shrink-0" />}
+                  {calculation.priceRating === "ok" && <Target className="w-4 h-4 text-warning flex-shrink-0" />}
+                  {(calculation.priceRating === "low" || calculation.priceRating === "danger") && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
+                  <div>
+                    <p className={`text-xs font-semibold ${
+                      calculation.priceRating === "excellent" || calculation.priceRating === "good" ? "text-success" :
+                      calculation.priceRating === "ok" ? "text-warning" : "text-destructive"
+                    }`}>
+                      {calculation.priceRating === "excellent" && "Отличная цена"}
+                      {calculation.priceRating === "good" && "Хорошая цена"}
+                      {calculation.priceRating === "ok" && "Приемлемо, но можно выше"}
+                      {calculation.priceRating === "low" && "⚠ Слишком дёшево!"}
+                      {calculation.priceRating === "danger" && "🚫 Работа в убыток!"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {calculation.priceRating === "excellent" && `Маржа ${(calculation.margin * 100).toFixed(0)}% — максимальная прибыль`}
+                      {calculation.priceRating === "good" && `Маржа ${(calculation.margin * 100).toFixed(0)}% — выше целевой ${(GOOD_MARGIN * 100)}%`}
+                      {calculation.priceRating === "ok" && `Маржа ${(calculation.margin * 100).toFixed(0)}% — минимально допустимо`}
+                      {calculation.priceRating === "low" && `Маржа ${(calculation.margin * 100).toFixed(0)}% < ${(MIN_MARGIN * 100)}% мин. — повысьте цену`}
+                      {calculation.priceRating === "danger" && `Маржа ${(calculation.margin * 100).toFixed(0)}% — вы теряете деньги!`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Recommended price hint */}
+                {calculation.total < calculation.recommendedPrice && (
+                  <div className="flex items-start gap-2 bg-primary/5 border border-primary/15 rounded-lg p-3">
+                    <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-medium text-card-foreground">Рекомендуемая цена</p>
+                      <p className="text-muted-foreground">
+                        Для маржи {(TARGET_MARGIN * 100)}% рекомендуем <span className="font-mono font-semibold text-primary">{calculation.recommendedPrice.toLocaleString("ru")} ₽</span>
+                      </p>
+                      <p className="text-muted-foreground">
+                        Минимально: <span className="font-mono">{calculation.minAcceptablePrice.toLocaleString("ru")} ₽</span> (прибыль {calculation.minProfit.toLocaleString("ru")} ₽)
+                      </p>
+                    </div>
                   </div>
                 )}
 
