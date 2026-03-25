@@ -17,6 +17,7 @@ import AuthPage from "@/pages/AuthPage";
 import PriceListsPage from "@/pages/PriceListsPage";
 import ClientEstimatePage from "@/pages/ClientEstimatePage";
 import ContractSignPage from "@/pages/ContractSignPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/estimate" element={<ClientEstimatePage />} />
             <Route path="/contract" element={<ContractSignPage />} />
             <Route element={<AppLayout />}>
