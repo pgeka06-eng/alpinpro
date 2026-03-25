@@ -741,6 +741,56 @@ export default function CalculatorPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Save template dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Сохранить как шаблон</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название шаблона *</Label>
+              <Input
+                placeholder='Напр. "Швы 100м + герметик"'
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Input
+                placeholder="Очистка крыши стандарт..."
+                value={templateDesc}
+                onChange={(e) => setTemplateDesc(e.target.value)}
+              />
+            </div>
+            {service && (
+              <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-xs">
+                <p className="font-medium text-card-foreground">{service.service_name}</p>
+                <p className="text-muted-foreground">{service.price.toLocaleString("ru")} ₽/{service.unit} × {volume} {service.unit}</p>
+                <p className="text-muted-foreground">
+                  Коэффициенты: ×{coeffValues.urgency[urgency]} / ×{coeffValues.complexity[complexity]} / ×{coeffValues.height[height]} / ×{coeffValues.season[season]}
+                </p>
+                {calculation && (
+                  <p className="font-mono font-semibold text-primary">Итого: {calculation.total.toLocaleString("ru")} ₽</p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveTemplateOpen(false)}>Отмена</Button>
+            <Button
+              onClick={() => saveTemplateMutation.mutate()}
+              disabled={!templateName.trim() || saveTemplateMutation.isPending}
+              className="gap-2"
+            >
+              {saveTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Bookmark className="w-4 h-4" /> Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
