@@ -244,6 +244,7 @@ export default function PriceListsPage() {
           <input
             type="file"
             accept=".pdf"
+            multiple
             onChange={handleUpload}
             className="absolute inset-0 opacity-0 cursor-pointer"
             disabled={uploading}
