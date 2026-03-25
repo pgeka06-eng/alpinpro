@@ -764,6 +764,53 @@ export type Database = {
           },
         ]
       }
+      salary_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          period_end: string
+          period_start: string
+          user_id: string
+          worker_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          period_end: string
+          period_start: string
+          user_id: string
+          worker_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          period_end?: string
+          period_start?: string
+          user_id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_payments_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
           address: string
@@ -826,6 +873,102 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      worker_assignments: {
+        Row: {
+          created_at: string
+          daily_pay: number | null
+          hours_worked: number | null
+          id: string
+          notes: string | null
+          order_id: string
+          status: string
+          user_id: string
+          work_date: string | null
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_pay?: number | null
+          hours_worked?: number | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          status?: string
+          user_id: string
+          work_date?: string | null
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_pay?: number | null
+          hours_worked?: number | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          status?: string
+          user_id?: string
+          work_date?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_assignments_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workers: {
+        Row: {
+          created_at: string
+          daily_rate: number
+          hourly_rate: number
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_rate?: number
+          hourly_rate?: number
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_rate?: number
+          hourly_rate?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
