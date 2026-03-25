@@ -244,6 +244,56 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          expense_date: string
+          id: string
+          include_vat: boolean
+          order_id: string | null
+          payment_method: string
+          user_id: string
+          vat_amount: number
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description: string
+          expense_date?: string
+          id?: string
+          include_vat?: boolean
+          order_id?: string | null
+          payment_method?: string
+          user_id: string
+          vat_amount?: number
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          expense_date?: string
+          id?: string
+          include_vat?: boolean
+          order_id?: string | null
+          payment_method?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           client_id: string | null
@@ -255,6 +305,10 @@ export type Database = {
           id: string
           is_repeat: boolean
           order_number: string
+          paid_amount: number
+          payment_date: string | null
+          payment_method: string | null
+          payment_status: string
           scheduled_date: string | null
           service_name: string
           status: string
@@ -274,6 +328,10 @@ export type Database = {
           id?: string
           is_repeat?: boolean
           order_number: string
+          paid_amount?: number
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_status?: string
           scheduled_date?: string | null
           service_name: string
           status?: string
@@ -293,6 +351,10 @@ export type Database = {
           id?: string
           is_repeat?: boolean
           order_number?: string
+          paid_amount?: number
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_status?: string
           scheduled_date?: string | null
           service_name?: string
           status?: string
@@ -315,6 +377,53 @@ export type Database = {
             columns: ["estimate_id"]
             isOneToOne: false
             referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          include_vat: boolean
+          note: string | null
+          order_id: string
+          payment_date: string
+          payment_method: string
+          user_id: string
+          vat_amount: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          include_vat?: boolean
+          note?: string | null
+          order_id: string
+          payment_date?: string
+          payment_method?: string
+          user_id: string
+          vat_amount?: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          include_vat?: boolean
+          note?: string | null
+          order_id?: string
+          payment_date?: string
+          payment_method?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
