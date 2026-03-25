@@ -10,10 +10,12 @@ import { toast } from "sonner";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgot, setShowForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,9 +25,16 @@ export default function AuthPage() {
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Добро пожаловать!");
-        navigate("/");
+        if (error) {
+          if (error.message === "Email not confirmed") {
+            toast.error("Email не подтверждён. Проверьте почту или нажмите «Отправить повторно».");
+          } else {
+            throw error;
+          }
+        } else {
+          toast.success("Добро пожаловать!");
+          navigate("/");
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -42,6 +51,48 @@ export default function AuthPage() {
       toast.error(err.message || "Произошла ошибка");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Введите email");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Ссылка для сброса пароля отправлена на вашу почту!");
+      setShowForgot(false);
+    } catch (err: any) {
+      toast.error(err.message || "Ошибка отправки");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      toast.error("Введите email");
+      return;
+    }
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      toast.success("Письмо с подтверждением отправлено повторно!");
+    } catch (err: any) {
+      toast.error(err.message || "Ошибка отправки");
+    } finally {
+      setResending(false);
     }
   };
 
