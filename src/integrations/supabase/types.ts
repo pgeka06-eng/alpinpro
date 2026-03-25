@@ -196,6 +196,51 @@ export type Database = {
           },
         ]
       }
+      cost_settings: {
+        Row: {
+          created_at: string
+          crew_daily_wage: number
+          crew_size: number
+          equipment_amortization: number
+          hourly_rate: number
+          hours_per_unit: number
+          id: string
+          material_cost_per_unit: number
+          overhead_percent: number
+          transport_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crew_daily_wage?: number
+          crew_size?: number
+          equipment_amortization?: number
+          hourly_rate?: number
+          hours_per_unit?: number
+          id?: string
+          material_cost_per_unit?: number
+          overhead_percent?: number
+          transport_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crew_daily_wage?: number
+          crew_size?: number
+          equipment_amortization?: number
+          hourly_rate?: number
+          hours_per_unit?: number
+          id?: string
+          material_cost_per_unit?: number
+          overhead_percent?: number
+          transport_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       estimates: {
         Row: {
           base_price: number
