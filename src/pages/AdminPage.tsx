@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [roleDialogUser, setRoleDialogUser] = useState<any>(null);
   const [newRole, setNewRole] = useState<AppRole>("climber");
   const [activityUser, setActivityUser] = useState<any>(null);
-
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   // ─── Queries ────
   const { data: profiles = [] } = useQuery({
     queryKey: ["admin-profiles"],
