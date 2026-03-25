@@ -22,6 +22,7 @@ import MarketplacePage from "@/pages/MarketplacePage";
 import RequestsPage from "@/pages/RequestsPage";
 import SitesPage from "@/pages/SitesPage";
 import CrewPage from "@/pages/CrewPage";
+import PlanningPage from "@/pages/PlanningPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
