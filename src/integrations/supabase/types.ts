@@ -327,6 +327,47 @@ export type Database = {
           },
         ]
       }
+      order_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          file_path: string | null
+          id: string
+          order_id: string
+          photo_url: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          order_id: string
+          photo_url: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          order_id?: string
+          photo_url?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_photos_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           client_id: string | null
