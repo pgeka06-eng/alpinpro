@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SendEstimateDialog } from "@/components/SendEstimateDialog";
 
 interface ServiceItem {
   id: string;
@@ -55,6 +56,7 @@ export default function CalculatorPage() {
   const [height, setHeight] = useState(0);
   const [season, setSeason] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showSendDialog, setShowSendDialog] = useState(false);
   const [usingDb, setUsingDb] = useState(false);
   const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPriceList, setSelectedPriceList] = useState("");
@@ -321,10 +323,27 @@ export default function CalculatorPage() {
                   </div>
                 )}
 
-                <Button className="w-full mt-2 gap-2" size="lg">
+                <Button className="w-full mt-2 gap-2" size="lg" onClick={() => setShowSendDialog(true)}>
                   <Send className="w-4 h-4" />
                   Отправить клиенту
                 </Button>
+
+                {service && calculation && (
+                  <SendEstimateDialog
+                    open={showSendDialog}
+                    onOpenChange={setShowSendDialog}
+                    serviceName={service.service_name}
+                    unit={service.unit}
+                    basePrice={service.price}
+                    volume={Number(volume)}
+                    coeffUrgency={calculation.breakdown.urgency}
+                    coeffComplexity={calculation.breakdown.complexity}
+                    coeffHeight={calculation.breakdown.height}
+                    coeffSeason={calculation.breakdown.season}
+                    totalCoeff={calculation.coeff}
+                    totalPrice={calculation.total}
+                  />
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center">
