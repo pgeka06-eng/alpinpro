@@ -421,7 +421,104 @@ export default function CalculatorPage() {
                   </div>
                 </div>
 
-                {/* Price rating indicator */}
+                {/* ─── Cost breakdown ──── */}
+                {costSettings && (costSettings.hourly_rate > 0 || costSettings.material_cost_per_unit > 0 || costSettings.crew_daily_wage > 0) && (() => {
+                  const vol = Number(volume);
+                  const laborCost = costSettings.hourly_rate * costSettings.hours_per_unit * vol;
+                  const materialCost = costSettings.material_cost_per_unit * vol;
+                  const workDays = Math.ceil((costSettings.hours_per_unit * vol) / 8);
+                  const crewCost = costSettings.crew_daily_wage * workDays;
+                  const equipCost = costSettings.equipment_amortization * workDays;
+                  const transportCost = costSettings.transport_cost;
+                  const subtotal = laborCost + materialCost + crewCost + equipCost + transportCost;
+                  const overhead = subtotal * (costSettings.overhead_percent / 100);
+                  const totalCost = Math.round(subtotal + overhead);
+                  const trueProfit = calculation.total - totalCost;
+                  const trueMargin = calculation.total > 0 ? trueProfit / calculation.total : 0;
+
+                  return (
+                    <div className="space-y-2 border-2 border-primary/20 rounded-xl p-4 bg-primary/5">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-primary" />
+                        <h4 className="text-xs font-semibold text-card-foreground uppercase tracking-wider">Реальная себестоимость</h4>
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        {laborCost > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Труд ({costSettings.hours_per_unit}ч × {vol}ед)</span>
+                            <span className="font-mono">{laborCost.toLocaleString("ru")} ₽</span>
+                          </div>
+                        )}
+                        {materialCost > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Материалы ({vol}ед × {costSettings.material_cost_per_unit}₽)</span>
+                            <span className="font-mono">{materialCost.toLocaleString("ru")} ₽</span>
+                          </div>
+                        )}
+                        {crewCost > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Бригада ({workDays} дн.)</span>
+                            <span className="font-mono">{crewCost.toLocaleString("ru")} ₽</span>
+                          </div>
+                        )}
+                        {equipCost > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Амортизация ({workDays} дн.)</span>
+                            <span className="font-mono">{equipCost.toLocaleString("ru")} ₽</span>
+                          </div>
+                        )}
+                        {transportCost > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Транспорт</span>
+                            <span className="font-mono">{transportCost.toLocaleString("ru")} ₽</span>
+                          </div>
+                        )}
+                        {overhead > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Накладные ({costSettings.overhead_percent}%)</span>
+                            <span className="font-mono">{Math.round(overhead).toLocaleString("ru")} ₽</span>
+                          </div>
+                        )}
+                        <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between font-medium">
+                          <span className="text-card-foreground">Себестоимость</span>
+                          <span className="font-mono text-primary">{totalCost.toLocaleString("ru")} ₽</span>
+                        </div>
+                      </div>
+
+                      {/* True profit */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className={`rounded-lg p-2.5 text-center ${trueMargin >= 0.25 ? "bg-success/10" : trueMargin >= 0.1 ? "bg-warning/10" : "bg-destructive/10"}`}>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Реальная маржа</p>
+                          <p className={`text-lg font-bold font-mono ${trueMargin >= 0.25 ? "text-success" : trueMargin >= 0.1 ? "text-warning" : "text-destructive"}`}>
+                            {(trueMargin * 100).toFixed(0)}%
+                          </p>
+                        </div>
+                        <div className={`rounded-lg p-2.5 text-center ${trueProfit >= 0 ? "bg-success/10" : "bg-destructive/10"}`}>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Чистая прибыль</p>
+                          <p className={`text-lg font-bold font-mono ${trueProfit >= 0 ? "text-success" : "text-destructive"}`}>
+                            {trueProfit.toLocaleString("ru")} ₽
+                          </p>
+                        </div>
+                      </div>
+
+                      {trueProfit < 0 && (
+                        <div className="flex items-center gap-1.5 text-xs text-destructive font-medium">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Работа в убыток! Повысьте цену или снизьте затраты.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {!costSettings && (
+                  <div className="flex items-start gap-2 bg-muted/30 rounded-lg p-3 text-[11px] text-muted-foreground border border-border">
+                    <Layers className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>Настройте <a href="/settings" className="text-primary hover:underline font-medium">параметры себестоимости</a> чтобы видеть реальную прибыль</span>
+                  </div>
+                )}
+
                 <div className={`rounded-lg p-3 flex items-center gap-2.5 ${
                   calculation.priceRating === "excellent" ? "bg-success/10 border border-success/20" :
                   calculation.priceRating === "good" ? "bg-success/10 border border-success/20" :
