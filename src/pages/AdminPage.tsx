@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   ShieldCheck, Users, Receipt, SlidersHorizontal, BarChart3, Flag,
   Loader2, Search, MoreHorizontal, Ban, CheckCircle, Trash2, Edit2,
-  Save, X, TrendingUp, DollarSign, ClipboardList, Eye
+  Save, X, TrendingUp, DollarSign, ClipboardList, Eye, Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
