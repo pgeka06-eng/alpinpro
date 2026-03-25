@@ -14,6 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
+      price_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          price_item_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          price_item_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          price_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_price_item_id_fkey"
+            columns: ["price_item_id"]
+            isOneToOne: false
+            referencedRelation: "price_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_verified: boolean
+          price: number
+          price_list_id: string
+          service_name: string
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_verified?: boolean
+          price?: number
+          price_list_id: string
+          service_name: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_verified?: boolean
+          price?: number
+          price_list_id?: string
+          service_name?: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_items_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_lists: {
+        Row: {
+          created_at: string
+          file_path: string | null
+          file_url: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
