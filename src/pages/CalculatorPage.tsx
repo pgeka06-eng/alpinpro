@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SendEstimateDialog } from "@/components/SendEstimateDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ServiceItem {
   id: string;
