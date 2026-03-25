@@ -21,6 +21,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import MarketplacePage from "@/pages/MarketplacePage";
 import RequestsPage from "@/pages/RequestsPage";
 import SitesPage from "@/pages/SitesPage";
+import CrewPage from "@/pages/CrewPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
