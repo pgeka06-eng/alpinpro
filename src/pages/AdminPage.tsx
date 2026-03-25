@@ -591,6 +591,90 @@ export default function AdminPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Activity dialog */}
+      <Dialog open={!!activityUser} onOpenChange={() => setActivityUser(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Активность: {activityUser?.full_name || "Без имени"}</DialogTitle></DialogHeader>
+          {activityUser && (() => {
+            const uid = activityUser.user_id;
+            const userOrders = orders.filter((o: any) => o.user_id === uid || o.climber_user_id === uid);
+            const userEstimates = estimates.filter((e: any) => e.user_id === uid);
+            const userContracts = contracts.filter((c: any) => c.user_id === uid);
+            const userPayments = payments.filter((p: any) => p.user_id === uid);
+            const userExpenses = expenses.filter((e: any) => e.user_id === uid);
+            const totalRev = userPayments.reduce((s: number, p: any) => s + Number(p.amount), 0);
+            const totalExp = userExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { label: "Заказы", value: userOrders.length },
+                    { label: "Сметы", value: userEstimates.length },
+                    { label: "Договоры", value: userContracts.length },
+                    { label: "Доход", value: `${totalRev.toLocaleString("ru-RU")} ₽` },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-muted rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase">{s.label}</p>
+                      <p className="text-sm font-bold text-foreground mt-0.5">{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {userOrders.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Последние заказы</h4>
+                    <div className="space-y-1.5">
+                      {userOrders.slice(0, 5).map((o: any) => (
+                        <div key={o.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
+                          <div>
+                            <span className="font-medium text-card-foreground">{o.service_name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">#{o.order_number}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs">{Number(o.total_price).toLocaleString("ru-RU")} ₽</span>
+                            <Badge variant="outline" className="text-[10px]">{o.status}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {userEstimates.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Последние сметы</h4>
+                    <div className="space-y-1.5">
+                      {userEstimates.slice(0, 5).map((e: any) => (
+                        <div key={e.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
+                          <div>
+                            <span className="font-medium text-card-foreground">{e.client_name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">{e.service_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs">{Number(e.total_price).toLocaleString("ru-RU")} ₽</span>
+                            <Badge variant={e.status === "signed" ? "default" : "secondary"} className="text-[10px]">{e.status === "signed" ? "Подписана" : "Ожидание"}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {userOrders.length === 0 && userEstimates.length === 0 && (
+                  <p className="text-center py-4 text-sm text-muted-foreground">Нет активности</p>
+                )}
+
+                <div className="border-t border-border pt-3 text-xs text-muted-foreground">
+                  Регистрация: {format(parseISO(activityUser.created_at), "dd MMMM yyyy", { locale: ru })}
+                  {activityUser.is_blocked && <Badge variant="destructive" className="ml-2">Заблокирован</Badge>}
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
