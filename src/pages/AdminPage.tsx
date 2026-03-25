@@ -486,6 +486,7 @@ export default function AdminPage() {
               <input
                 type="file"
                 accept=".pdf"
+                multiple
                 onChange={handlePdfUpload}
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 disabled={uploadingPdf}
