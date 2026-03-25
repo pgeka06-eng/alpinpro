@@ -631,13 +631,19 @@ export default function CalculatorPage() {
                 </div>
 
                 {calculation.total < calculation.recommendedPrice && (
-                  <div className="flex items-start gap-2 bg-primary/5 border border-primary/15 rounded-lg p-3">
-                    <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <div className="text-xs space-y-1">
-                      <p className="font-medium text-card-foreground">Рекомендуемая цена</p>
-                      <p className="text-muted-foreground">
-                        Для маржи {(TARGET_MARGIN * 100)}% рекомендуем <span className="font-mono font-semibold text-primary">{calculation.recommendedPrice.toLocaleString("ru")} ₽</span>
-                      </p>
+                  <div className="bg-primary/5 border border-primary/15 rounded-lg p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1 flex-1">
+                        <p className="font-medium text-card-foreground">Рекомендуемая цена</p>
+                        <p className="text-muted-foreground">
+                          Для маржи {(TARGET_MARGIN * 100)}%: <span className="font-mono font-semibold text-primary">{calculation.recommendedPrice.toLocaleString("ru")} ₽</span>
+                          {" "}(наценка {(calculation.basePrice > 0 ? ((calculation.recommendedPrice - calculation.basePrice) / calculation.basePrice * 100).toFixed(0) : 0)}%)
+                        </p>
+                        <p className="text-muted-foreground">
+                          Минимум (маржа {(MIN_MARGIN * 100)}%): <span className="font-mono font-semibold">{calculation.minAcceptablePrice.toLocaleString("ru")} ₽</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
