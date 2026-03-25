@@ -352,15 +352,19 @@ export default function AdminPage() {
           <div className="space-y-2">
             {filteredProfiles.map((p: any) => {
               const userRole = getUserRole(p.user_id);
+              const isBlocked = p.is_blocked;
               return (
                 <motion.div key={p.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-card rounded-xl border border-border p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
+                  className={`bg-card rounded-xl border p-4 flex items-center justify-between transition-colors ${isBlocked ? "border-destructive/30 opacity-70" : "border-border hover:border-primary/20"}`}>
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                      {(p.full_name || "?")[0].toUpperCase()}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isBlocked ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+                      {isBlocked ? <Ban className="w-5 h-5" /> : (p.full_name || "?")[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-card-foreground">{p.full_name || "Без имени"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-card-foreground">{p.full_name || "Без имени"}</p>
+                        {isBlocked && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Заблокирован</Badge>}
+                      </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         {p.phone && <span className="text-xs text-muted-foreground">{p.phone}</span>}
                         {p.city && <span className="text-xs text-muted-foreground">{p.city}</span>}
@@ -371,9 +375,20 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2">
                     {userRole && <Badge variant={roleBadgeVariant[userRole] || "outline"}>{roleLabels[userRole] || userRole}</Badge>}
                     {!userRole && <Badge variant="outline" className="text-muted-foreground">Нет роли</Badge>}
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => setActivityUser(p)}>
+                      <Eye className="w-3.5 h-3.5" /> Активность
+                    </Button>
                     <Button variant="ghost" size="sm" className="gap-1" onClick={() => { setRoleDialogUser(p); setNewRole(userRole || "climber"); }}>
                       <Edit2 className="w-3.5 h-3.5" /> Роль
                     </Button>
+                    {p.user_id !== user?.id && (
+                      <Button variant="ghost" size="sm"
+                        className={`gap-1 ${isBlocked ? "text-success hover:text-success" : "text-destructive hover:text-destructive"}`}
+                        onClick={() => toggleBlockMutation.mutate({ userId: p.user_id, blocked: !isBlocked })}
+                        disabled={toggleBlockMutation.isPending}>
+                        {isBlocked ? <><CheckCircle className="w-3.5 h-3.5" /> Разблокировать</> : <><Ban className="w-3.5 h-3.5" /> Блокировать</>}
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               );
