@@ -124,6 +124,9 @@ export default function Dashboard() {
         </Button>
       </div>
 
+      {/* Smart notifications */}
+      <SmartNotifications />
+
       {/* Key metrics — 2x2 on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
