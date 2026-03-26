@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { SmartNotifications } from "@/components/SmartNotifications";
 import { ru } from "date-fns/locale";
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -122,6 +123,9 @@ export default function Dashboard() {
           <Calculator className="w-4 h-4" /> Расчёт
         </Button>
       </div>
+
+      {/* Smart notifications */}
+      <SmartNotifications />
 
       {/* Key metrics — 2x2 on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
