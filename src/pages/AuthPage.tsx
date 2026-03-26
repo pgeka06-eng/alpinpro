@@ -178,6 +178,7 @@ export default function AuthPage() {
                     <Label>ФИО</Label>
                     <Input placeholder="Иванов Алексей Петрович" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
                   </div>
+                  </>
                 )}
                 <div className="space-y-2">
                   <Label>Email</Label>
