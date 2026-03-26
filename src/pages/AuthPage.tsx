@@ -160,6 +160,20 @@ export default function AuthPage() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
+                  <>
+                  <div className="space-y-2">
+                    <Label>Я регистрируюсь как</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setSignupRole("climber")}
+                        className={`p-3 rounded-lg border text-sm font-medium transition-all ${signupRole === "climber" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/30"}`}>
+                        🧗 Альпинист
+                      </button>
+                      <button type="button" onClick={() => setSignupRole("client")}
+                        className={`p-3 rounded-lg border text-sm font-medium transition-all ${signupRole === "client" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/30"}`}>
+                        🏢 Заказчик
+                      </button>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label>ФИО</Label>
                     <Input placeholder="Иванов Алексей Петрович" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
