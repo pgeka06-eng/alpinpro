@@ -41,7 +41,7 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: fullName, role: signupRole },
             emailRedirectTo: window.location.origin,
           },
         });
