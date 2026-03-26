@@ -381,6 +381,95 @@ export type Database = {
           },
         ]
       }
+      marketplace_orders: {
+        Row: {
+          address: string | null
+          budget_from: number | null
+          budget_to: number | null
+          city: string | null
+          client_user_id: string
+          created_at: string
+          deadline: string | null
+          description: string | null
+          id: string
+          responses_count: number
+          status: string
+          title: string
+          updated_at: string
+          work_type: string
+        }
+        Insert: {
+          address?: string | null
+          budget_from?: number | null
+          budget_to?: number | null
+          city?: string | null
+          client_user_id: string
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          responses_count?: number
+          status?: string
+          title: string
+          updated_at?: string
+          work_type?: string
+        }
+        Update: {
+          address?: string | null
+          budget_from?: number | null
+          budget_to?: number | null
+          city?: string | null
+          client_user_id?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          responses_count?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          work_type?: string
+        }
+        Relationships: []
+      }
+      marketplace_responses: {
+        Row: {
+          climber_user_id: string
+          created_at: string
+          id: string
+          message: string | null
+          order_id: string
+          proposed_price: number | null
+          status: string
+        }
+        Insert: {
+          climber_user_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          order_id: string
+          proposed_price?: number | null
+          status?: string
+        }
+        Update: {
+          climber_user_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          order_id?: string
+          proposed_price?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_responses_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_photos: {
         Row: {
           caption: string | null
@@ -1042,7 +1131,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "manager" | "climber"
+      app_role: "admin" | "manager" | "climber" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1170,7 +1259,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "manager", "climber"],
+      app_role: ["admin", "manager", "climber", "client"],
     },
   },
 } as const
