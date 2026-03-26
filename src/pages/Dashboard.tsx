@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { SmartNotifications } from "@/components/SmartNotifications";
 import { ru } from "date-fns/locale";
 
 const statusConfig: Record<string, { label: string; class: string }> = {
