@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Дашборд", roles: ["admin", "manager", "climber"] },
+  { to: "/", icon: LayoutDashboard, label: "Дашборд", roles: ["admin", "manager", "climber", "client"] },
   { to: "/calculator", icon: Calculator, label: "Калькулятор", roles: ["admin", "manager", "climber"] },
   { to: "/orders", icon: ClipboardList, label: "Заказы", roles: ["admin", "manager", "climber"] },
   { to: "/planning", icon: Calendar, label: "Планирование", roles: ["admin", "manager", "climber"] },
@@ -20,9 +20,9 @@ const navItems = [
   { to: "/price-lists", icon: Receipt, label: "Прайс-листы", roles: ["admin", "manager", "climber"] },
   { to: "/requests", icon: MessageSquareText, label: "Заявки", roles: ["admin", "manager", "climber"] },
   { to: "/climbers", icon: Users, label: "Альпинисты", roles: ["admin", "manager"] },
-  { to: "/marketplace", icon: Store, label: "Маркет", roles: ["admin", "manager", "climber"] },
+  { to: "/marketplace", icon: Store, label: "Маркет", roles: ["admin", "manager", "climber", "client"] },
   { to: "/admin", icon: Shield, label: "Админ-панель", roles: ["admin"] },
-  { to: "/settings", icon: Settings, label: "Настройки", roles: ["admin", "manager", "climber"] },
+  { to: "/settings", icon: Settings, label: "Настройки", roles: ["admin", "manager", "climber", "client"] },
 ];
 
 const roleLabels: Record<string, string> = {
