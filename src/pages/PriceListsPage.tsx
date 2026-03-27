@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +48,9 @@ export default function PriceListsPage() {
   const [editForm, setEditForm] = useState({ service_name: "", unit: "", price: 0, description: "" });
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPriceLists = useCallback(async () => {
     const { data } = await supabase
@@ -84,17 +87,16 @@ export default function PriceListsPage() {
     if (selectedList) fetchItems(selectedList);
   }, [selectedList, fetchItems]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !user) return;
+  const processFiles = async (fileList: File[]) => {
+    if (!user || fileList.length === 0) return;
 
-    const pdfFiles = Array.from(files).filter((f) => f.type === "application/pdf");
+    const pdfFiles = fileList.filter((f) => f.type === "application/pdf");
     if (pdfFiles.length === 0) {
       toast.error("Выберите PDF файлы");
       return;
     }
-    if (pdfFiles.length < files.length) {
-      toast.warning(`${files.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
+    if (pdfFiles.length < fileList.length) {
+      toast.warning(`${fileList.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
     }
 
     setUploading(true);
@@ -140,7 +142,47 @@ export default function PriceListsPage() {
       if (lastListId) setSelectedList(lastListId);
     }
     setUploading(false);
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(Array.from(files));
     e.target.value = "";
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      await processFiles(files);
+    }
   };
 
   const startEdit = (item: PriceItem) => {
@@ -235,7 +277,36 @@ export default function PriceListsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Full-page drag overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="border-2 border-dashed border-primary rounded-2xl p-16 text-center bg-card shadow-xl"
+            >
+              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+              <p className="text-xl font-semibold text-foreground">Отпустите файлы для загрузки</p>
+              <p className="text-sm text-muted-foreground mt-2">Поддерживаются PDF файлы</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Прайс-листы</h1>
@@ -243,6 +314,7 @@ export default function PriceListsPage() {
         </div>
         <div className="relative">
           <input
+            ref={fileInputRef}
             type="file"
             accept=".pdf"
             multiple
@@ -257,6 +329,7 @@ export default function PriceListsPage() {
         </div>
       </div>
 
+      {/* Drop zone when no lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Price lists sidebar */}
         <div className="space-y-3">
@@ -266,9 +339,13 @@ export default function PriceListsPage() {
               Загрузка...
             </div>
           ) : priceLists.length === 0 ? (
-            <div className="bg-card rounded-xl border border-border p-8 text-center">
-              <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Загрузите первый PDF прайс-лист</p>
+            <div
+              className="bg-card rounded-xl border-2 border-dashed border-border hover:border-primary/50 p-8 text-center cursor-pointer transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground">Перетащите PDF сюда</p>
+              <p className="text-xs text-muted-foreground mt-1">или нажмите для выбора файла</p>
             </div>
           ) : (
             priceLists.map((pl) => (
