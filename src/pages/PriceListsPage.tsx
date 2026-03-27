@@ -87,17 +87,16 @@ export default function PriceListsPage() {
     if (selectedList) fetchItems(selectedList);
   }, [selectedList, fetchItems]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !user) return;
+  const processFiles = async (fileList: File[]) => {
+    if (!user || fileList.length === 0) return;
 
-    const pdfFiles = Array.from(files).filter((f) => f.type === "application/pdf");
+    const pdfFiles = fileList.filter((f) => f.type === "application/pdf");
     if (pdfFiles.length === 0) {
       toast.error("Выберите PDF файлы");
       return;
     }
-    if (pdfFiles.length < files.length) {
-      toast.warning(`${files.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
+    if (pdfFiles.length < fileList.length) {
+      toast.warning(`${fileList.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
     }
 
     setUploading(true);
@@ -143,7 +142,47 @@ export default function PriceListsPage() {
       if (lastListId) setSelectedList(lastListId);
     }
     setUploading(false);
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(Array.from(files));
     e.target.value = "";
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      await processFiles(files);
+    }
   };
 
   const startEdit = (item: PriceItem) => {
