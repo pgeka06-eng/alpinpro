@@ -277,7 +277,36 @@ export default function PriceListsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Full-page drag overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="border-2 border-dashed border-primary rounded-2xl p-16 text-center bg-card shadow-xl"
+            >
+              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+              <p className="text-xl font-semibold text-foreground">Отпустите файлы для загрузки</p>
+              <p className="text-sm text-muted-foreground mt-2">Поддерживаются PDF файлы</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Прайс-листы</h1>
@@ -285,6 +314,7 @@ export default function PriceListsPage() {
         </div>
         <div className="relative">
           <input
+            ref={fileInputRef}
             type="file"
             accept=".pdf"
             multiple
@@ -299,6 +329,7 @@ export default function PriceListsPage() {
         </div>
       </div>
 
+      {/* Drop zone when no lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Price lists sidebar */}
         <div className="space-y-3">
@@ -308,9 +339,13 @@ export default function PriceListsPage() {
               Загрузка...
             </div>
           ) : priceLists.length === 0 ? (
-            <div className="bg-card rounded-xl border border-border p-8 text-center">
-              <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Загрузите первый PDF прайс-лист</p>
+            <div
+              className="bg-card rounded-xl border-2 border-dashed border-border hover:border-primary/50 p-8 text-center cursor-pointer transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground">Перетащите PDF сюда</p>
+              <p className="text-xs text-muted-foreground mt-1">или нажмите для выбора файла</p>
             </div>
           ) : (
             priceLists.map((pl) => (
