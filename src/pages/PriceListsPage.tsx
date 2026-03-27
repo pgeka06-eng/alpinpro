@@ -48,6 +48,9 @@ export default function PriceListsPage() {
   const [editForm, setEditForm] = useState({ service_name: "", unit: "", price: 0, description: "" });
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPriceLists = useCallback(async () => {
     const { data } = await supabase
