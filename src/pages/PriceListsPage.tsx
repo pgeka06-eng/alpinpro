@@ -380,7 +380,7 @@ export default function PriceListsPage() {
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground">Перетащите PDF сюда</p>
+              <p className="text-sm font-medium text-foreground">Перетащите PDF или Excel сюда</p>
               <p className="text-xs text-muted-foreground mt-1">или нажмите для выбора файла</p>
             </div>
           ) : (
