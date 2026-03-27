@@ -91,13 +91,13 @@ export default function PriceListsPage() {
   const processFiles = async (fileList: File[]) => {
     if (!user || fileList.length === 0) return;
 
-    const pdfFiles = fileList.filter((f) => f.type === "application/pdf");
-    if (pdfFiles.length === 0) {
-      toast.error("Выберите PDF файлы");
+    const supported = fileList.filter(isSupportedFile);
+    if (supported.length === 0) {
+      toast.error("Выберите PDF или Excel файлы");
       return;
     }
-    if (pdfFiles.length < fileList.length) {
-      toast.warning(`${fileList.length - pdfFiles.length} файл(ов) пропущено (не PDF)`);
+    if (supported.length < fileList.length) {
+      toast.warning(`${fileList.length - supported.length} файл(ов) пропущено (неподдерживаемый формат)`);
     }
 
     setUploading(true);
@@ -105,33 +105,68 @@ export default function PriceListsPage() {
     let totalItems = 0;
     let lastListId: string | null = null;
 
-    for (const file of pdfFiles) {
+    for (const file of supported) {
       try {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const filePath = `${user.id}/${Date.now()}_${safeName}`;
-        const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
-        if (uploadError) throw uploadError;
 
-        const { data: priceList, error: plError } = await supabase
-          .from("price_lists")
-          .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
-          .select()
-          .single();
-        if (plError) throw plError;
+        if (isExcelFile(file)) {
+          // Parse Excel client-side
+          const items = await parseExcelFile(file);
+          if (items.length === 0) {
+            toast.warning(`«${file.name}»: не удалось распознать услуги`);
+            continue;
+          }
 
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve((reader.result as string).split(",")[1]);
-          reader.readAsDataURL(file);
-        });
+          const { data: priceList, error: plError } = await supabase
+            .from("price_lists")
+            .insert({ user_id: user.id, name: file.name.replace(/\.(xlsx?|pdf)$/i, ""), file_path: null, status: "parsed" })
+            .select()
+            .single();
+          if (plError) throw plError;
 
-        const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
-          body: { priceListId: priceList.id, fileBase64: base64 },
-        });
-        if (error) throw error;
-        successCount++;
-        totalItems += data?.itemCount || 0;
-        lastListId = priceList.id;
+          const insertData = items.map((item, index) => ({
+            price_list_id: priceList.id,
+            service_name: item.service_name,
+            unit: item.unit,
+            price: item.price,
+            description: item.description,
+            sort_order: index,
+            is_verified: false,
+          }));
+
+          const { error: insertError } = await supabase.from("price_items").insert(insertData);
+          if (insertError) throw insertError;
+
+          successCount++;
+          totalItems += items.length;
+          lastListId = priceList.id;
+        } else {
+          // PDF flow — upload and use AI parsing
+          const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
+          if (uploadError) throw uploadError;
+
+          const { data: priceList, error: plError } = await supabase
+            .from("price_lists")
+            .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
+            .select()
+            .single();
+          if (plError) throw plError;
+
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string).split(",")[1]);
+            reader.readAsDataURL(file);
+          });
+
+          const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
+            body: { priceListId: priceList.id, fileBase64: base64 },
+          });
+          if (error) throw error;
+          successCount++;
+          totalItems += data?.itemCount || 0;
+          lastListId = priceList.id;
+        }
       } catch (err: any) {
         toast.error(`Ошибка «${file.name}»: ${err.message || "неизвестная ошибка"}`);
       }
