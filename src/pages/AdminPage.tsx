@@ -206,7 +206,8 @@ export default function AdminPage() {
 
     for (const file of pdfFiles) {
       try {
-        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${user.id}/${Date.now()}_${safeName}`;
         const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
         if (uploadError) throw uploadError;
 
