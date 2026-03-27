@@ -360,7 +360,7 @@ export default function PriceListsPage() {
           />
           <Button className="gap-2" disabled={uploading}>
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {uploading ? "Загрузка..." : "Загрузить PDF"}
+            {uploading ? "Загрузка..." : "Загрузить PDF / Excel"}
           </Button>
         </div>
       </div>
