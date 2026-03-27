@@ -9,6 +9,7 @@ import {
   Upload, FileText, CheckCircle2, XCircle, Loader2, Trash2, Edit3, Save, History, Plus, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { parseExcelFile, isExcelFile, isPdfFile, isSupportedFile } from "@/lib/parseExcelPriceList";
 
 interface PriceList {
   id: string;
