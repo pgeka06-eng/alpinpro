@@ -337,7 +337,7 @@ export default function PriceListsPage() {
             >
               <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
               <p className="text-xl font-semibold text-foreground">Отпустите файлы для загрузки</p>
-              <p className="text-sm text-muted-foreground mt-2">Поддерживаются PDF файлы</p>
+              <p className="text-sm text-muted-foreground mt-2">Поддерживаются PDF и Excel файлы</p>
             </motion.div>
           </motion.div>
         )}

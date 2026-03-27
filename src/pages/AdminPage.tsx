@@ -519,7 +519,7 @@ export default function AdminPage() {
             <div className="relative flex-shrink-0">
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.xlsx,.xls"
                 multiple
                 onChange={handlePdfUpload}
                 className="absolute inset-0 opacity-0 cursor-pointer"
@@ -527,7 +527,7 @@ export default function AdminPage() {
               />
               <Button className="gap-2" disabled={uploadingPdf}>
                 {uploadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                {uploadingPdf ? "Загрузка..." : "Загрузить PDF"}
+                {uploadingPdf ? "Загрузка..." : "Загрузить PDF / Excel"}
               </Button>
             </div>
           </div>
