@@ -352,7 +352,7 @@ export default function PriceListsPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,.xlsx,.xls"
             multiple
             onChange={handleUpload}
             className="absolute inset-0 opacity-0 cursor-pointer"
