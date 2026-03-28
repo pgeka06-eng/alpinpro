@@ -24,6 +24,7 @@ import SitesPage from "@/pages/SitesPage";
 import CrewPage from "@/pages/CrewPage";
 import PlanningPage from "@/pages/PlanningPage";
 import ClientsPage from "@/pages/ClientsPage";
+import ContractGeneratorPage from "@/pages/ContractGeneratorPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/accounting" element={<AccountingPage />} />
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/contract-generator" element={<ContractGeneratorPage />} />
               <Route path="/climbers" element={<ClimbersPage />} />
               <Route path="/price-lists" element={<PriceListsPage />} />
               <Route path="/requests" element={<RequestsPage />} />
