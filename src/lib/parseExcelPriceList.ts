@@ -5,48 +5,117 @@ export interface ParsedPriceItem {
   unit: string;
   price: number;
   description: string | null;
+  coefficient?: number | null;
 }
 
-const UNIT_KEYWORDS = ["м²", "м2", "кв.м", "п.м.", "м.п.", "шт", "шт.", "п.м", "л.м.", "комп", "компл", "усл", "час", "смена", "м³", "м3", "куб.м", "т", "кг"];
+const UNIT_KEYWORDS = [
+  "м²", "м2", "кв.м", "кв.м.", "кв. м", "кв. м.",
+  "п.м.", "м.п.", "п.м", "п. м.", "м. п.", "л.м.", "л. м.",
+  "шт", "шт.", "штук", "штука",
+  "компл", "компл.", "комплект", "комп", "комп.",
+  "усл", "усл.", "услуга",
+  "час", "ч.", "ч",
+  "смена", "см.",
+  "м³", "м3", "куб.м", "куб.м.", "куб. м",
+  "т", "т.", "тонн", "тонна",
+  "кг", "кг.",
+  "л", "л.", "литр",
+  "м", "м.", "метр",
+  "объект", "объ.", "об.",
+  "раз", "выезд",
+];
 
-function guessColumns(rows: any[][]): { nameCol: number; unitCol: number; priceCol: number } | null {
+const NAME_HEADERS = ["наименование", "услуг", "название", "работ", "вид", "описание", "позиция", "наим", "перечень", "состав"];
+const UNIT_HEADERS = ["ед.", "единиц", "изм", "ед.изм", "ед. изм"];
+const PRICE_HEADERS = ["цена", "стоимость", "руб", "тариф", "расценка", "ставка", "прайс", "сумма", "₽", "rub"];
+const COEFF_HEADERS = ["коэф", "коэфф", "кф", "k", "множитель", "надбавка", "повыш", "понижающ"];
+
+interface ColumnMap {
+  nameCol: number;
+  unitCol: number;
+  priceCol: number;
+  coeffCol: number;
+  headerRow: number;
+}
+
+function normalizeStr(val: any): string {
+  return String(val || "").toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function matchesAny(val: string, keywords: string[]): boolean {
+  return keywords.some(k => val.includes(k));
+}
+
+function guessColumns(rows: any[][]): ColumnMap | null {
   if (rows.length < 2) return null;
 
-  // Try to find header row
-  for (let r = 0; r < Math.min(5, rows.length); r++) {
+  // Try to find header row in first 10 rows
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
     const row = rows[r];
     if (!row) continue;
-    let nameCol = -1, unitCol = -1, priceCol = -1;
+
+    let nameCol = -1, unitCol = -1, priceCol = -1, coeffCol = -1;
 
     for (let c = 0; c < row.length; c++) {
-      const val = String(row[c] || "").toLowerCase().trim();
-      if (nameCol === -1 && (val.includes("наименование") || val.includes("услуг") || val.includes("название") || val.includes("работ") || val.includes("вид"))) {
+      const val = normalizeStr(row[c]);
+      if (!val || val.length < 2) continue;
+
+      if (nameCol === -1 && matchesAny(val, NAME_HEADERS)) {
         nameCol = c;
-      } else if (unitCol === -1 && (val.includes("ед.") || val.includes("единиц") || val.includes("изм"))) {
+      } else if (unitCol === -1 && matchesAny(val, UNIT_HEADERS)) {
         unitCol = c;
-      } else if (priceCol === -1 && (val.includes("цена") || val.includes("стоимость") || val.includes("руб") || val.includes("тариф"))) {
+      } else if (priceCol === -1 && matchesAny(val, PRICE_HEADERS)) {
         priceCol = c;
+      } else if (coeffCol === -1 && matchesAny(val, COEFF_HEADERS)) {
+        coeffCol = c;
       }
     }
 
     if (nameCol !== -1 && priceCol !== -1) {
-      return { nameCol, unitCol: unitCol === -1 ? nameCol + 1 : unitCol, priceCol };
+      return {
+        nameCol,
+        unitCol: unitCol === -1 ? nameCol + 1 : unitCol,
+        priceCol,
+        coeffCol,
+        headerRow: r,
+      };
     }
   }
 
-  // Fallback: first text col = name, find first numeric col = price
-  if (rows.length > 1) {
-    const sampleRow = rows[1];
-    if (!sampleRow) return null;
-    let nameCol = 0, priceCol = -1;
-    for (let c = 0; c < sampleRow.length; c++) {
-      const val = sampleRow[c];
-      if (typeof val === "number" && val > 0 && priceCol === -1 && c > 0) {
-        priceCol = c;
+  // Fallback: heuristic scan — find longest text col as name, first numeric col as price
+  for (let r = 1; r < Math.min(10, rows.length); r++) {
+    const row = rows[r];
+    if (!row || row.length < 2) continue;
+
+    let nameCol = -1, priceCol = -1;
+    let maxTextLen = 0;
+
+    for (let c = 0; c < row.length; c++) {
+      const val = row[c];
+      if (val == null) continue;
+
+      const str = String(val).trim();
+
+      // Candidate for name: longest text
+      if (typeof val === "string" || (str.length > 3 && isNaN(Number(str.replace(/[^\d.,]/g, ""))))) {
+        if (str.length > maxTextLen) {
+          maxTextLen = str.length;
+          nameCol = c;
+        }
+      }
+
+      // Candidate for price: positive number
+      if (priceCol === -1 && c > 0) {
+        const num = typeof val === "number" ? val : parseFloat(str.replace(/[^\d.,]/g, "").replace(",", "."));
+        if (!isNaN(num) && num > 0) {
+          priceCol = c;
+        }
       }
     }
-    if (priceCol !== -1) {
-      return { nameCol, unitCol: priceCol - 1 > nameCol ? priceCol - 1 : nameCol + 1, priceCol };
+
+    if (nameCol !== -1 && priceCol !== -1) {
+      const unitCol = priceCol - 1 > nameCol ? priceCol - 1 : nameCol + 1;
+      return { nameCol, unitCol, priceCol, coeffCol: -1, headerRow: r - 1 };
     }
   }
 
@@ -62,6 +131,37 @@ function detectUnit(val: any): string {
   return s || "шт";
 }
 
+function parsePrice(raw: any): number {
+  if (typeof raw === "number") return raw;
+  if (!raw) return 0;
+  const cleaned = String(raw)
+    .replace(/\s/g, "")
+    .replace(/[^\d.,\-]/g, "")
+    .replace(",", ".");
+  return parseFloat(cleaned) || 0;
+}
+
+function parseCoeff(raw: any): number | null {
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "number") return raw;
+  const cleaned = String(raw)
+    .replace(/\s/g, "")
+    .replace(/[^\d.,\-]/g, "")
+    .replace(",", ".");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? null : num;
+}
+
+function isLikelySectionHeader(name: string, price: number, unit: string | null): boolean {
+  // Section headers: no price, no unit, often short or numbered like "1.", "I.", "Раздел"
+  if (price > 0) return false;
+  const lower = name.toLowerCase();
+  if (/^(раздел|глава|часть|блок|группа|категория)\s/i.test(name)) return true;
+  if (/^\d+\.\s*$/.test(name.trim())) return true;
+  if (!unit && price === 0 && name.length < 50) return true;
+  return false;
+}
+
 export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
   const buffer = await file.arrayBuffer();
   const wb = XLSX.read(buffer, { type: "array" });
@@ -75,15 +175,8 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
     const cols = guessColumns(rows);
     if (!cols) continue;
 
-    // Find header row index (skip it)
-    let startRow = 1;
-    for (let r = 0; r < Math.min(5, rows.length); r++) {
-      const val = String(rows[r]?.[cols.nameCol] || "").toLowerCase();
-      if (val.includes("наименование") || val.includes("услуг") || val.includes("название") || val.includes("работ")) {
-        startRow = r + 1;
-        break;
-      }
-    }
+    const startRow = cols.headerRow + 1;
+    let currentSection = "";
 
     for (let r = startRow; r < rows.length; r++) {
       const row = rows[r];
@@ -92,17 +185,33 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       const name = String(row[cols.nameCol] || "").trim();
       if (!name || name.length < 2) continue;
 
-      const rawPrice = row[cols.priceCol];
-      const price = typeof rawPrice === "number" ? rawPrice : parseFloat(String(rawPrice || "0").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
+      const rawUnit = row[cols.unitCol];
+      const unit = detectUnit(rawUnit);
+      const price = parsePrice(row[cols.priceCol]);
+      const coeff = cols.coeffCol !== -1 ? parseCoeff(row[cols.coeffCol]) : null;
 
-      // Skip rows that look like headers/sections (no price, all text)
-      if (price === 0 && !row[cols.unitCol]) continue;
+      // Detect section headers
+      if (isLikelySectionHeader(name, price, rawUnit ? String(rawUnit).trim() : null)) {
+        currentSection = name.replace(/^\d+[\.\)]\s*/, "").trim();
+        continue;
+      }
+
+      // Build description from section context
+      let description: string | null = null;
+      if (currentSection) {
+        description = `Раздел: ${currentSection}`;
+      }
+      if (coeff != null && coeff !== 1) {
+        const coeffStr = `Коэффициент: ${coeff}`;
+        description = description ? `${description}; ${coeffStr}` : coeffStr;
+      }
 
       items.push({
         service_name: name,
-        unit: detectUnit(row[cols.unitCol]),
+        unit,
         price,
-        description: null,
+        description,
+        coefficient: coeff,
       });
     }
   }
