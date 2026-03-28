@@ -124,15 +124,23 @@ serve(async (req) => {
     }
 
     if (items.length > 0) {
-      const insertData = items.map((item: any, index: number) => ({
-        price_list_id: priceListId,
-        service_name: String(item.service_name || item.name || 'Неизвестная услуга'),
-        unit: String(item.unit || 'шт'),
-        price: Number(item.price) || 0,
-        description: item.description || null,
-        sort_order: index,
-        is_verified: false,
-      }));
+      const insertData = items.map((item: any, index: number) => {
+        // Convert coefficient info to description suffix
+        let desc = item.description || null;
+        if (item.coefficient != null && item.coefficient !== 1) {
+          const coeffStr = `Коэффициент: ${item.coefficient}`;
+          desc = desc ? `${desc}; ${coeffStr}` : coeffStr;
+        }
+        return {
+          price_list_id: priceListId,
+          service_name: String(item.service_name || item.name || 'Неизвестная услуга'),
+          unit: String(item.unit || 'шт'),
+          price: Number(item.price) || 0,
+          description: desc,
+          sort_order: index,
+          is_verified: false,
+        };
+      });
 
       const { error: insertError } = await supabase.from('price_items').insert(insertData);
       if (insertError) {
