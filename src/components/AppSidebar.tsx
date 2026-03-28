@@ -18,6 +18,7 @@ const navItems = [
   { to: "/clients", icon: UserCheck, label: "Клиенты", roles: ["admin", "manager"] },
   { to: "/sites", icon: Building2, label: "Объекты", roles: ["admin", "manager", "climber"] },
   { to: "/documents", icon: FileText, label: "Документы", roles: ["admin", "manager", "climber"] },
+  { to: "/contract-generator", icon: Sparkles, label: "Генератор договоров", roles: ["admin", "manager", "climber"] },
   { to: "/price-lists", icon: Receipt, label: "Прайс-листы", roles: ["admin", "manager", "climber"] },
   { to: "/requests", icon: MessageSquareText, label: "Заявки", roles: ["admin", "manager", "climber"] },
   { to: "/climbers", icon: Users, label: "Альпинисты", roles: ["admin", "manager"] },
