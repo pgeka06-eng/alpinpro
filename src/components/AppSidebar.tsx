@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Calculator, ClipboardList, Wallet, FileText, Users,
   Settings, ChevronLeft, ChevronRight, HardHat, LogOut, Shield, Receipt,
   Menu, X, Store, MessageSquareText, Building2, UsersRound, Calendar, UserCheck,
+  Sparkles,
 } from "lucide-react";
 
 const navItems = [
