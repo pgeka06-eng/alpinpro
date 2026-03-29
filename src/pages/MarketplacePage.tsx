@@ -225,6 +225,9 @@ export default function MarketplacePage() {
       <div className="bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
               <HardHat className="w-6 h-6 text-primary-foreground" />
             </div>
