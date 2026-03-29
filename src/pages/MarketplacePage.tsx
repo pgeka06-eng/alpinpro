@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   HardHat, Star, Phone, MessageSquare, Shield, MapPin, Briefcase,
   Loader2, Send, Search, Plus, Calendar, DollarSign, Clock,
-  ChevronRight, Users,
+  ChevronRight, Users, ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO } from "date-fns";
@@ -51,6 +52,7 @@ export default function MarketplacePage() {
   const [tab, setTab] = useState<string>(role === "client" ? "orders" : "climbers");
   const [contactClimber, setContactClimber] = useState<{ userId: string; name: string } | null>(null);
   const [form, setForm] = useState({ client_name: "", client_phone: "", message: "", work_type: "" });
+  const navigate = useNavigate();
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orderForm, setOrderForm] = useState({
     title: "", description: "", work_type: "Другое", address: "", city: "",
@@ -223,6 +225,9 @@ export default function MarketplacePage() {
       <div className="bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
               <HardHat className="w-6 h-6 text-primary-foreground" />
             </div>

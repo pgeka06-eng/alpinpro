@@ -132,13 +132,18 @@ function detectUnit(val: any): string {
 }
 
 function parsePrice(raw: any): number {
-  if (typeof raw === "number") return raw;
+  if (typeof raw === "number") {
+    if (!isFinite(raw) || Math.abs(raw) > 99999999) return 0;
+    return Math.round(raw * 100) / 100;
+  }
   if (!raw) return 0;
   const cleaned = String(raw)
     .replace(/\s/g, "")
     .replace(/[^\d.,\-]/g, "")
     .replace(",", ".");
-  return parseFloat(cleaned) || 0;
+  const num = parseFloat(cleaned);
+  if (!isFinite(num) || Math.abs(num) > 99999999) return 0;
+  return Math.round(num * 100) / 100;
 }
 
 function parseCoeff(raw: any): number | null {
