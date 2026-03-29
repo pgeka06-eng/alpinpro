@@ -89,7 +89,7 @@ serve(async (req) => {
 
 Верни ТОЛЬКО валидный JSON с полем "items". Никакого текста до или после JSON.`;
 
-    const aiResponse = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
