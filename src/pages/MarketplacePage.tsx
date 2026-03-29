@@ -52,6 +52,7 @@ export default function MarketplacePage() {
   const [tab, setTab] = useState<string>(role === "client" ? "orders" : "climbers");
   const [contactClimber, setContactClimber] = useState<{ userId: string; name: string } | null>(null);
   const [form, setForm] = useState({ client_name: "", client_phone: "", message: "", work_type: "" });
+  const navigate = useNavigate();
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orderForm, setOrderForm] = useState({
     title: "", description: "", work_type: "Другое", address: "", city: "",
