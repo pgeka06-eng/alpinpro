@@ -25,10 +25,20 @@ const UNIT_KEYWORDS = [
   "раз", "выезд",
 ];
 
-const NAME_HEADERS = ["наименование", "услуг", "название", "работ", "вид", "описание", "позиция", "наим", "перечень", "состав"];
-const UNIT_HEADERS = ["ед.", "единиц", "изм", "ед.изм", "ед. изм"];
-const PRICE_HEADERS = ["цена", "стоимость", "руб", "тариф", "расценка", "ставка", "прайс", "сумма", "₽", "rub"];
+const NAME_HEADERS = [
+  "наименование", "услуг", "название", "работ", "вид", "описание",
+  "позиция", "наим", "перечень", "состав", "наименование работ",
+  "наименование услуг", "виды работ", "вид работ", "перечень работ",
+  "услуга", "работа", "наименование услуги",
+];
+const UNIT_HEADERS = ["ед.", "единиц", "изм", "ед.изм", "ед. изм", "единица"];
+const PRICE_HEADERS = [
+  "цена", "стоимость", "руб", "тариф", "расценка", "ставка",
+  "прайс", "сумма", "₽", "rub", "цена за ед", "цена за единицу",
+  "стоимость работ", "стоимость за ед", "за единицу", "за ед.",
+];
 const COEFF_HEADERS = ["коэф", "коэфф", "кф", "k", "множитель", "надбавка", "повыш", "понижающ"];
+const SKIP_HEADERS = ["№", "п/п", "п.п", "п.п.", "n", "no", "номер", "num", "#"];
 
 interface ColumnMap {
   nameCol: number;
@@ -46,11 +56,14 @@ function matchesAny(val: string, keywords: string[]): boolean {
   return keywords.some(k => val.includes(k));
 }
 
+function isNumberColumn(val: string): boolean {
+  return matchesAny(val, SKIP_HEADERS) || /^№/.test(val.trim());
+}
+
 function guessColumns(rows: any[][]): ColumnMap | null {
   if (rows.length < 2) return null;
 
-  // Try to find header row in first 10 rows
-  for (let r = 0; r < Math.min(10, rows.length); r++) {
+  for (let r = 0; r < Math.min(15, rows.length); r++) {
     const row = rows[r];
     if (!row) continue;
 
@@ -58,7 +71,9 @@ function guessColumns(rows: any[][]): ColumnMap | null {
 
     for (let c = 0; c < row.length; c++) {
       const val = normalizeStr(row[c]);
-      if (!val || val.length < 2) continue;
+      if (!val || val.length < 1) continue;
+
+      if (isNumberColumn(val)) continue;
 
       if (nameCol === -1 && matchesAny(val, NAME_HEADERS)) {
         nameCol = c;
@@ -72,18 +87,39 @@ function guessColumns(rows: any[][]): ColumnMap | null {
     }
 
     if (nameCol !== -1 && priceCol !== -1) {
-      return {
-        nameCol,
-        unitCol: unitCol === -1 ? nameCol + 1 : unitCol,
-        priceCol,
-        coeffCol,
-        headerRow: r,
-      };
+      return { nameCol, unitCol: unitCol === -1 ? nameCol + 1 : unitCol, priceCol, coeffCol, headerRow: r };
+    }
+
+    // If we found name but not price, try to find price column by looking for numeric values in data rows
+    if (nameCol !== -1 && priceCol === -1) {
+      for (let dr = r + 1; dr < Math.min(r + 5, rows.length); dr++) {
+        const dataRow = rows[dr];
+        if (!dataRow) continue;
+        for (let c = 0; c < dataRow.length; c++) {
+          if (c === nameCol || c === unitCol) continue;
+          const v = dataRow[c];
+          if (typeof v === "number" && v > 0 && v < 99999999) {
+            priceCol = c;
+            break;
+          }
+          if (v != null) {
+            const n = parseFloat(String(v).replace(/\s/g, "").replace(",", ".").replace(/[^\d.]/g, ""));
+            if (!isNaN(n) && n > 0 && n < 99999999) {
+              priceCol = c;
+              break;
+            }
+          }
+        }
+        if (priceCol !== -1) break;
+      }
+      if (priceCol !== -1) {
+        return { nameCol, unitCol: unitCol === -1 ? nameCol + 1 : unitCol, priceCol, coeffCol, headerRow: r };
+      }
     }
   }
 
-  // Fallback: heuristic scan — find longest text col as name, first numeric col as price
-  for (let r = 1; r < Math.min(10, rows.length); r++) {
+  // Fallback: scan data rows to find text col (name) and numeric col (price)
+  for (let r = 0; r < Math.min(20, rows.length); r++) {
     const row = rows[r];
     if (!row || row.length < 2) continue;
 
@@ -93,29 +129,37 @@ function guessColumns(rows: any[][]): ColumnMap | null {
     for (let c = 0; c < row.length; c++) {
       const val = row[c];
       if (val == null) continue;
-
       const str = String(val).trim();
+      if (!str) continue;
 
-      // Candidate for name: longest text
-      if (typeof val === "string" || (str.length > 3 && isNaN(Number(str.replace(/[^\d.,]/g, ""))))) {
-        if (str.length > maxTextLen) {
-          maxTextLen = str.length;
-          nameCol = c;
-        }
+      const numCleaned = str.replace(/\s/g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
+      const isNum = numCleaned.length > 0 && !isNaN(Number(numCleaned));
+
+      if (!isNum && str.length > maxTextLen && str.length > 5) {
+        maxTextLen = str.length;
+        nameCol = c;
       }
 
-      // Candidate for price: positive number
-      if (priceCol === -1 && c > 0) {
-        const num = typeof val === "number" ? val : parseFloat(str.replace(/[^\d.,]/g, "").replace(",", "."));
-        if (!isNaN(num) && num > 0) {
-          priceCol = c;
-        }
+      if (priceCol === -1 && c > 0 && isNum) {
+        const num = parseFloat(numCleaned);
+        if (num > 0 && num < 99999999) priceCol = c;
       }
     }
 
     if (nameCol !== -1 && priceCol !== -1) {
-      const unitCol = priceCol - 1 > nameCol ? priceCol - 1 : nameCol + 1;
-      return { nameCol, unitCol, priceCol, coeffCol: -1, headerRow: r - 1 };
+      // Verify by checking next rows too
+      let confirmed = 0;
+      for (let dr = r + 1; dr < Math.min(r + 4, rows.length); dr++) {
+        const dataRow = rows[dr];
+        if (!dataRow) continue;
+        const nm = String(dataRow[nameCol] || "").trim();
+        const pv = dataRow[priceCol];
+        if (nm.length > 2 && pv != null) confirmed++;
+      }
+      if (confirmed >= 1) {
+        const unitCol = priceCol - 1 > nameCol ? priceCol - 1 : nameCol + 1;
+        return { nameCol, unitCol, priceCol, coeffCol: -1, headerRow: Math.max(0, r - 1) };
+      }
     }
   }
 
@@ -157,13 +201,12 @@ function parseCoeff(raw: any): number | null {
   return isNaN(num) ? null : num;
 }
 
-function isLikelySectionHeader(name: string, price: number, unit: string | null): boolean {
-  // Section headers: no price, no unit, often short or numbered like "1.", "I.", "Раздел"
+function isLikelySectionHeader(name: string, price: number, rawUnit: string | null, hasUnitCol: boolean): boolean {
   if (price > 0) return false;
-  const lower = name.toLowerCase();
   if (/^(раздел|глава|часть|блок|группа|категория)\s/i.test(name)) return true;
   if (/^\d+\.\s*$/.test(name.trim())) return true;
-  if (!unit && price === 0 && name.length < 50) return true;
+  // Only treat as header if there's a unit column in the table but this row has no unit AND no price
+  if (hasUnitCol && !rawUnit && price === 0 && name.length < 30 && /^[IVX\d]+[\.\)]\s/.test(name)) return true;
   return false;
 }
 
@@ -182,6 +225,7 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
 
     const startRow = cols.headerRow + 1;
     let currentSection = "";
+    const hasUnitCol = cols.unitCol !== cols.nameCol + 1 || cols.unitCol !== -1;
 
     for (let r = startRow; r < rows.length; r++) {
       const row = rows[r];
@@ -190,18 +234,21 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       const name = String(row[cols.nameCol] || "").trim();
       if (!name || name.length < 2) continue;
 
+      // Skip rows that look like the header row repeated
+      const normName = normalizeStr(name);
+      if (matchesAny(normName, NAME_HEADERS)) continue;
+
       const rawUnit = row[cols.unitCol];
+      const rawUnitStr = rawUnit ? String(rawUnit).trim() : null;
       const unit = detectUnit(rawUnit);
       const price = parsePrice(row[cols.priceCol]);
       const coeff = cols.coeffCol !== -1 ? parseCoeff(row[cols.coeffCol]) : null;
 
-      // Detect section headers
-      if (isLikelySectionHeader(name, price, rawUnit ? String(rawUnit).trim() : null)) {
-        currentSection = name.replace(/^\d+[\.\)]\s*/, "").trim();
+      if (isLikelySectionHeader(name, price, rawUnitStr, hasUnitCol)) {
+        currentSection = name.replace(/^\d+[\.\)]\s*/, "").replace(/^[IVX]+[\.\)]\s*/, "").trim();
         continue;
       }
 
-      // Build description from section context
       let description: string | null = null;
       if (currentSection) {
         description = `Раздел: ${currentSection}`;
