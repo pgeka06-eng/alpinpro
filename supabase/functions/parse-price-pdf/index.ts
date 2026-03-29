@@ -20,10 +20,15 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!, {
+    // Use SUPABASE_ANON_KEY for user auth client
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
+    if (!anonKey) {
+      throw new Error('No anon key available');
+    }
+    const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: userError } = await userClient.auth.getUser();
@@ -50,19 +55,25 @@ serve(async (req) => {
 
     const systemPrompt = `Ты — высокоточный парсер прайс-листов для компаний промышленного альпинизма и высотных работ.
 
-Твоя задача: извлечь АБСОЛЮТНО ВСЕ строки с услугами, ценами и коэффициентами из PDF документа.
+Твоя задача: извлечь АБСОЛЮТНО ВСЕ строки с услугами, ценами, коэффициентами и привязкой к городам из PDF документа.
 
 Верни JSON объект с полем "items" — массив объектов со следующими полями:
-- service_name (string): ПОЛНОЕ название услуги. Если услуга вложена в раздел/категорию, добавь название раздела в начало через " — " (например "Фасадные работы — Мойка окон")
+- service_name (string): ПОЛНОЕ название услуги. Если услуга вложена в раздел/категорию, добавь название раздела в начало через " — " (например "Фасадные работы — Мойка окон"). Если указан город, добавь его: "Москва — Мойка фасадов"
 - unit (string): единица измерения. Стандартные: м², п.м., шт, м.п., кв.м, куб.м, компл, усл, час, смена, объект, выезд, м, кг, т, л. Если не указана — "шт"
 - price (number): цена за единицу. Если диапазон "от X до Y" — бери среднее. Если "от X" — бери X. Если "договорная" или не указана — 0
-- description (string|null): доп. информация: раздел/категория, примечания, условия, минимальный объём, особенности
+- description (string|null): доп. информация: раздел/категория, примечания, условия, минимальный объём, особенности. ОБЯЗАТЕЛЬНО включи сюда название города если он указан (например "Город: Москва")
 - coefficient (number|null): коэффициент/множитель. Ищи в:
   • Отдельных колонках таблицы (к, коэф., К)
   • В тексте рядом с ценой: "к=1.5", "x1.5", "×2"  
   • В примечаниях: "повышающий коэффициент 1.2"
   • Надбавки в %: "+20% высотность" → 1.2, "+50% срочность" → 1.5
   • Понижающие: "-10%" → 0.9
+  • Региональные коэффициенты: разные цены для разных городов — укажи коэффициент если он явно указан
+- city (string|null): город/регион к которому относится данная услуга. Ищи в:
+  • Заголовках таблиц или разделов: "Прайс для Москвы", "Цены Санкт-Петербург"
+  • В колонках таблицы если есть столбец "Город"/"Регион"
+  • В подзаголовках или шапке документа
+  • В примечаниях и сносках
 
 КРИТИЧЕСКИ ВАЖНЫЕ ПРАВИЛА:
 1. Извлекай ВСЕ строки без исключения, даже если их сотни. Не группируй, не обобщай, не пропускай.
@@ -72,6 +83,9 @@ serve(async (req) => {
 5. Если есть примечания к услуге (сноски, звёздочки) — включи их в description.
 6. Числа: убирай пробелы-разделители тысяч (1 500 → 1500), запятые заменяй на точки.
 7. Если одна услуга имеет несколько вариантов цен (например по высоте: до 30м — 500, до 50м — 700) — создай ОТДЕЛЬНЫЕ записи для каждого варианта.
+8. Если в документе есть цены для разных городов — создай отдельные записи для каждого города с указанием города в поле city и в description.
+9. Если документ — сканированное изображение, всё равно распознай текст и извлеки данные.
+10. Ищи коэффициенты ВЕЗДЕ: в сносках, примечаниях, отдельных таблицах, в тексте после основной таблицы.
 
 Верни ТОЛЬКО валидный JSON с полем "items". Никакого текста до или после JSON.`;
 
@@ -94,7 +108,7 @@ serve(async (req) => {
               },
               {
                 type: 'text',
-                text: 'Распознай ВСЕ услуги, цены, единицы измерения и коэффициенты из этого прайс-листа. Не пропусти ни одной строки. Каждую строку таблицы — в отдельный элемент массива.',
+                text: 'Распознай ВСЕ услуги, цены, единицы измерения, коэффициенты и города из этого прайс-листа. Не пропусти ни одной строки. Каждую строку таблицы — в отдельный элемент массива. Если есть разные цены по городам — каждый город отдельно.',
               },
             ],
           },
@@ -118,11 +132,9 @@ serve(async (req) => {
     let items: any[];
     try {
       const parsed = JSON.parse(content);
-      // Try multiple possible field names
       items = Array.isArray(parsed) ? parsed
         : parsed.items || parsed.services || parsed.data || parsed.rows || parsed.result || [];
       if (!Array.isArray(items)) {
-        // Last resort: find first array value in the object
         const firstArr = Object.values(parsed).find(v => Array.isArray(v));
         items = (firstArr as any[]) || [];
       }
@@ -136,20 +148,37 @@ serve(async (req) => {
 
     if (items.length > 0) {
       const insertData = items.map((item: any, index: number) => {
-        let desc = item.description || null;
+        const parts: string[] = [];
+        
+        // Add city info to description
+        const city = item.city || null;
+        if (city) {
+          parts.push(`Город: ${city}`);
+        }
+        
+        // Add original description
+        if (item.description) {
+          parts.push(String(item.description));
+        }
+        
+        // Add coefficient info
         const coeff = item.coefficient != null ? Number(item.coefficient) : null;
         if (coeff != null && coeff !== 1 && coeff !== 0) {
-          const coeffStr = `Коэффициент: ${coeff}`;
-          desc = desc ? `${desc}; ${coeffStr}` : coeffStr;
+          parts.push(`Коэффициент: ${coeff}`);
         }
+
+        const desc = parts.length > 0 ? parts.join('; ') : null;
 
         let price = Number(item.price) || 0;
         if (price > 99999999) price = 0;
         price = Math.round(price * 100) / 100;
 
+        // Build service name with city prefix if present
+        let serviceName = String(item.service_name || item.name || item.title || 'Неизвестная услуга');
+        
         return {
           price_list_id: priceListId,
-          service_name: String(item.service_name || item.name || item.title || 'Неизвестная услуга').substring(0, 500),
+          service_name: serviceName.substring(0, 500),
           unit: String(item.unit || 'шт').substring(0, 50),
           price,
           description: desc ? String(desc).substring(0, 1000) : null,
@@ -158,7 +187,7 @@ serve(async (req) => {
         };
       });
 
-      // Insert in batches of 100 to avoid payload limits
+      // Insert in batches of 100
       for (let i = 0; i < insertData.length; i += 100) {
         const batch = insertData.slice(i, i + 100);
         const { error: insertError } = await supabase.from('price_items').insert(batch);

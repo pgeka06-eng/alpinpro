@@ -294,11 +294,13 @@ function extractCoeffFromName(name: string): { cleanName: string; coeff: number 
 
 function isLikelySectionHeader(name: string, price: number, rawUnit: string | null, hasUnitCol: boolean): boolean {
   if (price > 0) return false;
-  if (/^(раздел|глава|часть|блок|группа|категория)\s/i.test(name)) return true;
+  // Only pure section keywords
+  if (/^(раздел|глава|часть|блок|группа|категория)\s*[:\-.]?\s/i.test(name)) return true;
+  // Just a number like "1." or "IV."
   if (/^\d+\.\s*$/.test(name.trim())) return true;
   if (/^[IVX]+\.\s*$/.test(name.trim())) return true;
-  // Only treat as numbered header if unit col exists but is empty for this row
-  if (hasUnitCol && !rawUnit && price === 0 && name.length < 30 && /^[IVX\d]+[\.\)]\s/.test(name)) return true;
+  // Numbered header only if unit col exists but is empty AND name is short
+  if (hasUnitCol && !rawUnit && price === 0 && name.length < 25 && /^[IVX\d]+[\.\)]\s/.test(name) && !/\d{2,}/.test(name.replace(/^[IVX\d]+[\.\)]\s*/, ''))) return true;
   return false;
 }
 
