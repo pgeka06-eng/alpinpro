@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -48,7 +48,33 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Send PDF as inline_data to Gemini which supports native PDF parsing
+    const systemPrompt = `Ты — высокоточный парсер прайс-листов для компаний промышленного альпинизма и высотных работ.
+
+Твоя задача: извлечь АБСОЛЮТНО ВСЕ строки с услугами, ценами и коэффициентами из PDF документа.
+
+Верни JSON объект с полем "items" — массив объектов со следующими полями:
+- service_name (string): ПОЛНОЕ название услуги. Если услуга вложена в раздел/категорию, добавь название раздела в начало через " — " (например "Фасадные работы — Мойка окон")
+- unit (string): единица измерения. Стандартные: м², п.м., шт, м.п., кв.м, куб.м, компл, усл, час, смена, объект, выезд, м, кг, т, л. Если не указана — "шт"
+- price (number): цена за единицу. Если диапазон "от X до Y" — бери среднее. Если "от X" — бери X. Если "договорная" или не указана — 0
+- description (string|null): доп. информация: раздел/категория, примечания, условия, минимальный объём, особенности
+- coefficient (number|null): коэффициент/множитель. Ищи в:
+  • Отдельных колонках таблицы (к, коэф., К)
+  • В тексте рядом с ценой: "к=1.5", "x1.5", "×2"  
+  • В примечаниях: "повышающий коэффициент 1.2"
+  • Надбавки в %: "+20% высотность" → 1.2, "+50% срочность" → 1.5
+  • Понижающие: "-10%" → 0.9
+
+КРИТИЧЕСКИ ВАЖНЫЕ ПРАВИЛА:
+1. Извлекай ВСЕ строки без исключения, даже если их сотни. Не группируй, не обобщай, не пропускай.
+2. Каждая строка таблицы с названием услуги = отдельный объект в массиве.
+3. Если в PDF несколько таблиц или разделов — извлеки из ВСЕХ.
+4. Разделы и подразделы (Фасадные работы, Кровельные работы, Герметизация и т.д.) — НЕ создавай для них отдельные записи, но используй их как префикс для service_name вложенных услуг.
+5. Если есть примечания к услуге (сноски, звёздочки) — включи их в description.
+6. Числа: убирай пробелы-разделители тысяч (1 500 → 1500), запятые заменяй на точки.
+7. Если одна услуга имеет несколько вариантов цен (например по высоте: до 30м — 500, до 50м — 700) — создай ОТДЕЛЬНЫЕ записи для каждого варианта.
+
+Верни ТОЛЬКО валидный JSON с полем "items". Никакого текста до или после JSON.`;
+
     const aiResponse = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -58,38 +84,17 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          {
-            role: 'system',
-            content: `Ты парсер прайс-листов для промышленных альпинистов. Извлеки ВСЕ услуги, цены и коэффициенты из PDF.
-
-Верни JSON объект с полем "items" — массив объектов:
-- service_name: полное название услуги (строка). Если услуга относится к разделу/категории, добавь её в начало через " — ".
-- unit: единица измерения (м², п.м., шт, м.п., м2, кв.м, куб.м, компл, усл, час, смена, объект, выезд и т.д.)
-- price: цена за единицу (число). Если указан диапазон "от X до Y", бери среднее.
-- description: дополнительная информация: раздел/категория, примечания, условия применения (строка или null)
-- coefficient: коэффициент/множитель если указан (число или null). Ищи: "коэф.", "к=", "x1.5", "повышающий", "понижающий", надбавки в %.
-
-Правила:
-1. Извлекай ВСЕ строки с услугами, даже если их сотни. Не пропускай ни одну.
-2. Если цена не указана — ставь 0. Если единица не определена — ставь "шт".
-3. Коэффициенты могут быть в отдельных колонках, в скобках рядом с ценой, или в примечаниях.
-4. Если есть таблица с разделами (Фасадные работы, Кровельные работы и т.д.), сохрани название раздела в description.
-5. Надбавки в процентах (высотность +20%, срочность +50%) конвертируй в коэффициент (1.2, 1.5).
-
-Верни ТОЛЬКО валидный JSON объект с полем items.`,
-          },
+          { role: 'system', content: systemPrompt },
           {
             role: 'user',
             content: [
               {
                 type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${fileBase64}`,
-                },
+                image_url: { url: `data:application/pdf;base64,${fileBase64}` },
               },
               {
                 type: 'text',
-                text: 'Распознай все услуги и цены из этого прайс-листа PDF.',
+                text: 'Распознай ВСЕ услуги, цены, единицы измерения и коэффициенты из этого прайс-листа. Не пропусти ни одной строки. Каждую строку таблицы — в отдельный элемент массива.',
               },
             ],
           },
@@ -113,8 +118,14 @@ serve(async (req) => {
     let items: any[];
     try {
       const parsed = JSON.parse(content);
-      items = Array.isArray(parsed) ? parsed : parsed.items || parsed.services || Object.values(parsed)[0] || [];
-      if (!Array.isArray(items)) items = [];
+      // Try multiple possible field names
+      items = Array.isArray(parsed) ? parsed
+        : parsed.items || parsed.services || parsed.data || parsed.rows || parsed.result || [];
+      if (!Array.isArray(items)) {
+        // Last resort: find first array value in the object
+        const firstArr = Object.values(parsed).find(v => Array.isArray(v));
+        items = (firstArr as any[]) || [];
+      }
     } catch {
       console.error('Failed to parse AI response:', content);
       await supabase.from('price_lists').update({ status: 'error' }).eq('id', priceListId);
@@ -125,30 +136,39 @@ serve(async (req) => {
 
     if (items.length > 0) {
       const insertData = items.map((item: any, index: number) => {
-        // Convert coefficient info to description suffix
         let desc = item.description || null;
-        if (item.coefficient != null && item.coefficient !== 1) {
-          const coeffStr = `Коэффициент: ${item.coefficient}`;
+        const coeff = item.coefficient != null ? Number(item.coefficient) : null;
+        if (coeff != null && coeff !== 1 && coeff !== 0) {
+          const coeffStr = `Коэффициент: ${coeff}`;
           desc = desc ? `${desc}; ${coeffStr}` : coeffStr;
         }
+
+        let price = Number(item.price) || 0;
+        if (price > 99999999) price = 0;
+        price = Math.round(price * 100) / 100;
+
         return {
           price_list_id: priceListId,
-          service_name: String(item.service_name || item.name || 'Неизвестная услуга'),
-          unit: String(item.unit || 'шт'),
-          price: Number(item.price) || 0,
-          description: desc,
+          service_name: String(item.service_name || item.name || item.title || 'Неизвестная услуга').substring(0, 500),
+          unit: String(item.unit || 'шт').substring(0, 50),
+          price,
+          description: desc ? String(desc).substring(0, 1000) : null,
           sort_order: index,
           is_verified: false,
         };
       });
 
-      const { error: insertError } = await supabase.from('price_items').insert(insertData);
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        await supabase.from('price_lists').update({ status: 'error' }).eq('id', priceListId);
-        return new Response(JSON.stringify({ error: 'Failed to save items' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      // Insert in batches of 100 to avoid payload limits
+      for (let i = 0; i < insertData.length; i += 100) {
+        const batch = insertData.slice(i, i + 100);
+        const { error: insertError } = await supabase.from('price_items').insert(batch);
+        if (insertError) {
+          console.error('Insert error batch', i, insertError);
+          await supabase.from('price_lists').update({ status: 'error' }).eq('id', priceListId);
+          return new Response(JSON.stringify({ error: 'Failed to save items', details: insertError.message }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
       }
     }
 
