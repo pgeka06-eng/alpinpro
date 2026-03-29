@@ -111,8 +111,17 @@ export default function PriceListsPage() {
         const filePath = `${user.id}/${Date.now()}_${safeName}`;
 
         if (isExcelFile(file)) {
-          // Parse Excel client-side
-          const items = await parseExcelFile(file);
+          const parsedItems = await parseExcelFile(file);
+          const items = parsedItems
+            .map((item) => ({
+              ...item,
+              service_name: item.service_name?.trim(),
+              unit: item.unit?.trim() || "шт",
+              price: Number.isFinite(item.price) ? Math.round(item.price * 100) / 100 : 0,
+              description: item.description?.trim() || null,
+            }))
+            .filter((item) => item.service_name && item.service_name.length > 1);
+
           if (items.length === 0) {
             toast.warning(`«${file.name}»: не удалось распознать услуги`);
             continue;
@@ -129,40 +138,38 @@ export default function PriceListsPage() {
             price_list_id: priceList.id,
             service_name: item.service_name,
             unit: item.unit,
-            price: item.price,
+            price: Math.abs(item.price) > 99999999 ? 0 : item.price,
             description: item.description,
             sort_order: index,
             is_verified: false,
           }));
 
-          const { error: insertError } = await supabase.from("price_items").insert(insertData);
-          if (insertError) throw insertError;
+          for (let i = 0; i < insertData.length; i += 100) {
+            const batch = insertData.slice(i, i + 100);
+            const { error: insertError } = await supabase.from("price_items").insert(batch);
+            if (insertError) throw insertError;
+          }
 
           successCount++;
           totalItems += items.length;
           lastListId = priceList.id;
         } else {
-          // PDF flow — upload and use AI parsing
           const { error: uploadError } = await supabase.storage.from("price-pdfs").upload(filePath, file);
           if (uploadError) throw uploadError;
 
           const { data: priceList, error: plError } = await supabase
             .from("price_lists")
-            .insert({ user_id: user.id, name: file.name.replace(".pdf", ""), file_path: filePath, status: "pending" })
+            .insert({ user_id: user.id, name: file.name.replace(/\.pdf$/i, ""), file_path: filePath, status: "pending" })
             .select()
             .single();
           if (plError) throw plError;
 
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve((reader.result as string).split(",")[1]);
-            reader.readAsDataURL(file);
-          });
-
           const { data, error } = await supabase.functions.invoke("parse-price-pdf", {
-            body: { priceListId: priceList.id, fileBase64: base64 },
+            body: { priceListId: priceList.id, filePath },
           });
           if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+
           successCount++;
           totalItems += data?.itemCount || 0;
           lastListId = priceList.id;
