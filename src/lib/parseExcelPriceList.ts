@@ -294,21 +294,78 @@ function extractCoeffFromName(name: string): { cleanName: string; coeff: number 
 
 function isLikelySectionHeader(name: string, price: number, rawUnit: string | null, hasUnitCol: boolean): boolean {
   if (price > 0) return false;
-  // Only pure section keywords
   if (/^(раздел|глава|часть|блок|группа|категория)\s*[:\-.]?\s/i.test(name)) return true;
-  // Just a number like "1." or "IV."
   if (/^\d+\.\s*$/.test(name.trim())) return true;
   if (/^[IVX]+\.\s*$/.test(name.trim())) return true;
-  // Numbered header only if unit col exists but is empty AND name is short
-  if (hasUnitCol && !rawUnit && price === 0 && name.length < 25 && /^[IVX\d]+[\.\)]\s/.test(name) && !/\d{2,}/.test(name.replace(/^[IVX\d]+[\.\)]\s*/, ''))) return true;
+  if (hasUnitCol && !rawUnit && price === 0 && name.length < 25 && /^[IVX\d]+[\.\)]\s/.test(name) && !/\d{2,}/.test(name.replace(/^[IVX\d]+[\.\)]\s*/, ""))) return true;
   return false;
 }
 
-/** Detect if a sheet is a coefficient/city reference sheet rather than a services sheet */
+function looksLikeUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value) || /www\./i.test(value) || /[\w.-]+\.[a-z]{2,}(\/|$)/i.test(value);
+}
+
+function looksLikeDateValue(value: any): boolean {
+  if (value instanceof Date) return true;
+  const text = String(value || "").trim();
+  if (!text) return false;
+  if (/(gmt|utc|mon|tue|wed|thu|fri|sat|sun|янв|фев|мар|апр|май|июн|июл|авг|сен|окт|ноя|дек|пон|вто|сре|чет|пят|суб|вос)/i.test(text)) return true;
+  return /\b(19|20)\d{2}\b/.test(text) && !Number.isNaN(Date.parse(text));
+}
+
+function isNoiseServiceName(name: string): boolean {
+  const normalized = normalizeStr(name);
+  if (!normalized) return true;
+  if (looksLikeUrl(name) || looksLikeDateValue(name)) return true;
+  if (/^[\d\s.,₽$€%+-]+$/.test(name)) return true;
+  if (/^т\d+[\d.,\s]*₽?$/i.test(normalized)) return true;
+
+  const blockedPhrases = [
+    "донат", "сумма на ваше усмотрение", "условная единица", "выбрать государство", "россия",
+    "сбер", "сбербанк", "т-банк", "тинькофф", "озон-банк", "ozon", "qr", "сбп",
+    "если плоды этого труда являются полезными", "messenger.online.sberbank.ru",
+  ];
+
+  if (blockedPhrases.some((phrase) => normalized.includes(phrase))) return true;
+  if (!/[a-zа-яё]/i.test(name)) return true;
+  return false;
+}
+
+function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
+  const startRow = cols.headerRow + 1;
+  let validRows = 0;
+  let noiseRows = 0;
+
+  for (let r = startRow; r < Math.min(startRow + 80, rows.length); r++) {
+    const row = rows[r];
+    if (!row) continue;
+
+    const rawName = row[cols.nameCol];
+    const name = String(rawName || "").trim();
+    if (!name) continue;
+    if (matchesAny(normalizeStr(name), NAME_HEADERS)) continue;
+
+    const price = parsePrice(row[cols.priceCol]);
+    const rawUnit = cols.unitCol >= 0 ? row[cols.unitCol] : null;
+    const rawUnitStr = rawUnit ? String(rawUnit).trim() : "";
+    const coeff = cols.coeffCol !== -1 ? parseCoeff(row[cols.coeffCol]) : null;
+
+    if (isNoiseServiceName(name) || isLikelySectionHeader(name, price, rawUnitStr || null, cols.unitCol >= 0 && cols.unitCol !== cols.nameCol)) {
+      noiseRows++;
+      continue;
+    }
+
+    if (price > 0 || rawUnitStr || coeff != null) {
+      validRows++;
+    }
+  }
+
+  return validRows >= 3 && validRows >= noiseRows;
+}
+
 function isCoefficientSheet(rows: any[][]): boolean {
   if (rows.length < 2) return false;
 
-  // Check sheet content: if most rows have short text (city names) + numbers that look like coefficients (0.5-3.0)
   let cityLikeRows = 0;
   let serviceLikeRows = 0;
   const scanEnd = Math.min(50, rows.length);
@@ -322,9 +379,8 @@ function isCoefficientSheet(rows: any[][]): boolean {
 
     for (const cell of row) {
       if (cell == null) continue;
-      if (typeof cell === "number") {
-        nums.push(cell);
-      } else {
+      if (typeof cell === "number") nums.push(cell);
+      else {
         const s = String(cell).trim();
         if (s.length > 0) texts.push(s);
       }
@@ -332,34 +388,26 @@ function isCoefficientSheet(rows: any[][]): boolean {
 
     if (texts.length === 0 && nums.length === 0) continue;
 
-    // Coefficient rows: short text (city/region name) + small numbers (0.1 - 5.0)
-    const hasShortText = texts.some(t => t.length >= 2 && t.length <= 40);
-    const hasCoeffNumbers = nums.some(n => n >= 0.1 && n <= 5.0 && n !== Math.floor(n) || (n >= 0.1 && n <= 5.0));
-    const hasLargeNumbers = nums.some(n => n > 10);
-    const hasLongText = texts.some(t => t.length > 50);
+    const hasShortText = texts.some((t) => t.length >= 2 && t.length <= 40 && !isNoiseServiceName(t));
+    const hasCoeffNumbers = nums.some((n) => n >= 0.1 && n <= 5.0);
+    const hasLargeNumbers = nums.some((n) => n > 10);
+    const hasLongText = texts.some((t) => t.length > 50);
 
-    if (hasShortText && hasCoeffNumbers && !hasLargeNumbers && !hasLongText) {
-      cityLikeRows++;
-    }
-    if (hasLongText || hasLargeNumbers) {
-      serviceLikeRows++;
-    }
+    if (hasShortText && hasCoeffNumbers && !hasLargeNumbers && !hasLongText) cityLikeRows++;
+    if (hasLongText || hasLargeNumbers) serviceLikeRows++;
   }
 
-  // If >60% of non-empty rows look like coefficient data, skip this sheet
   const total = cityLikeRows + serviceLikeRows;
   if (total < 3) return false;
   return cityLikeRows / total > 0.6;
 }
 
-/** Check if sheet name suggests it's a coefficient/city sheet */
 function isCoeffSheetByName(name: string): boolean {
   const n = name.toLowerCase().trim();
   const coeffKeywords = ["коэф", "коэфф", "кф", "город", "регион", "район", "зон", "территор", "надбавк", "индекс"];
-  return coeffKeywords.some(k => n.includes(k));
+  return coeffKeywords.some((k) => n.includes(k));
 }
 
-/** Extract city-coefficient mapping from coefficient sheets */
 function extractCityCoefficients(rows: any[][]): Record<string, number> {
   const result: Record<string, number> = {};
 
@@ -376,16 +424,18 @@ function extractCityCoefficients(rows: any[][]): Record<string, number> {
         coeffValue = cell;
       } else {
         const s = String(cell).trim();
-        // Looks like a city/region name (not a header keyword)
-        if (s.length >= 2 && s.length <= 50 && !matchesAny(normalizeStr(s), [...COEFF_HEADERS, ...PRICE_HEADERS, ...UNIT_HEADERS, ...SKIP_HEADERS])) {
+        if (
+          s.length >= 2 &&
+          s.length <= 50 &&
+          !isNoiseServiceName(s) &&
+          !matchesAny(normalizeStr(s), [...COEFF_HEADERS, ...PRICE_HEADERS, ...UNIT_HEADERS, ...SKIP_HEADERS])
+        ) {
           if (!cityName) cityName = s;
         }
       }
     }
 
-    if (cityName && coeffValue > 0) {
-      result[cityName] = coeffValue;
-    }
+    if (cityName && coeffValue > 0) result[cityName] = coeffValue;
   }
 
   return result;
@@ -413,7 +463,6 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
   const items: ParsedPriceItem[] = [];
   let cityCoefficients: Record<string, number> = {};
 
-  // Pass 1: Identify coefficient sheets and extract city coefficients
   const serviceSheets: string[] = [];
   for (const sheetName of wb.SheetNames) {
     const sheet = wb.Sheets[sheetName];
@@ -428,14 +477,13 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
     }
   }
 
-  // Pass 2: Parse only service sheets
   for (const sheetName of serviceSheets) {
     const sheet = wb.Sheets[sheetName];
     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
     if (rows.length < 2) continue;
 
     const cols = guessColumns(rows);
-    if (!cols) continue;
+    if (!cols || !isLikelyServiceSheet(rows, cols)) continue;
 
     const startRow = cols.headerRow + 1;
     let currentSection = "";
@@ -446,9 +494,8 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       if (!row) continue;
 
       let name = String(row[cols.nameCol] || "").trim();
-      if (!name || name.length < 2) continue;
+      if (!name || name.length < 2 || isNoiseServiceName(name)) continue;
 
-      // Skip repeated header rows
       const normName = normalizeStr(name);
       if (matchesAny(normName, NAME_HEADERS)) continue;
 
@@ -458,7 +505,6 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       const price = parsePrice(row[cols.priceCol]);
       let coeff = cols.coeffCol !== -1 ? parseCoeff(row[cols.coeffCol]) : null;
 
-      // Try to extract coefficient from name text
       if (coeff == null) {
         const extracted = extractCoeffFromName(name);
         if (extracted.coeff != null) {
@@ -467,15 +513,15 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
         }
       }
 
+      if (!name || isNoiseServiceName(name)) continue;
+
       if (isLikelySectionHeader(name, price, rawUnitStr, hasUnitCol)) {
         currentSection = name.replace(/^\d+[\.\)]\s*/, "").replace(/^[IVX]+[\.\)]\s*/, "").trim();
         continue;
       }
 
       let description: string | null = null;
-      if (currentSection) {
-        description = `Раздел: ${currentSection}`;
-      }
+      if (currentSection) description = `Раздел: ${currentSection}`;
       if (coeff != null && coeff !== 1) {
         const coeffStr = `Коэффициент: ${coeff}`;
         description = description ? `${description}; ${coeffStr}` : coeffStr;
@@ -485,17 +531,13 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
     }
   }
 
-  // Pass 3: If city coefficients were found, add them to descriptions
   if (Object.keys(cityCoefficients).length > 0) {
     const coeffSummary = Object.entries(cityCoefficients)
       .map(([city, coeff]) => `${city}: ${coeff}`)
       .join(", ");
 
-    // Add coefficient info to the first item's description or create a summary
     for (const item of items) {
-      if (!item.description) {
-        item.description = `Региональные коэффициенты: ${coeffSummary}`;
-      }
+      if (!item.description) item.description = `Региональные коэффициенты: ${coeffSummary}`;
     }
   }
 
