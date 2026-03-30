@@ -304,28 +304,133 @@ function isLikelySectionHeader(name: string, price: number, rawUnit: string | nu
   return false;
 }
 
-export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
-  const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: "array", cellDates: true });
-  const items: ParsedPriceItem[] = [];
+/** Detect if a sheet is a coefficient/city reference sheet rather than a services sheet */
+function isCoefficientSheet(rows: any[][]): boolean {
+  if (rows.length < 2) return false;
 
-  for (const sheetName of wb.SheetNames) {
-    const sheet = wb.Sheets[sheetName];
-    // Unmerge cells so data propagates to all merged cells
-    if (sheet["!merges"]) {
-      for (const merge of sheet["!merges"]) {
-        const topLeft = sheet[XLSX.utils.encode_cell(merge.s)];
-        if (!topLeft) continue;
-        for (let r = merge.s.r; r <= merge.e.r; r++) {
-          for (let c = merge.s.c; c <= merge.e.c; c++) {
-            if (r === merge.s.r && c === merge.s.c) continue;
-            const addr = XLSX.utils.encode_cell({ r, c });
-            if (!sheet[addr]) sheet[addr] = { ...topLeft };
-          }
+  // Check sheet content: if most rows have short text (city names) + numbers that look like coefficients (0.5-3.0)
+  let cityLikeRows = 0;
+  let serviceLikeRows = 0;
+  const scanEnd = Math.min(50, rows.length);
+
+  for (let r = 0; r < scanEnd; r++) {
+    const row = rows[r];
+    if (!row) continue;
+
+    const texts: string[] = [];
+    const nums: number[] = [];
+
+    for (const cell of row) {
+      if (cell == null) continue;
+      if (typeof cell === "number") {
+        nums.push(cell);
+      } else {
+        const s = String(cell).trim();
+        if (s.length > 0) texts.push(s);
+      }
+    }
+
+    if (texts.length === 0 && nums.length === 0) continue;
+
+    // Coefficient rows: short text (city/region name) + small numbers (0.1 - 5.0)
+    const hasShortText = texts.some(t => t.length >= 2 && t.length <= 40);
+    const hasCoeffNumbers = nums.some(n => n >= 0.1 && n <= 5.0 && n !== Math.floor(n) || (n >= 0.1 && n <= 5.0));
+    const hasLargeNumbers = nums.some(n => n > 10);
+    const hasLongText = texts.some(t => t.length > 50);
+
+    if (hasShortText && hasCoeffNumbers && !hasLargeNumbers && !hasLongText) {
+      cityLikeRows++;
+    }
+    if (hasLongText || hasLargeNumbers) {
+      serviceLikeRows++;
+    }
+  }
+
+  // If >60% of non-empty rows look like coefficient data, skip this sheet
+  const total = cityLikeRows + serviceLikeRows;
+  if (total < 3) return false;
+  return cityLikeRows / total > 0.6;
+}
+
+/** Check if sheet name suggests it's a coefficient/city sheet */
+function isCoeffSheetByName(name: string): boolean {
+  const n = name.toLowerCase().trim();
+  const coeffKeywords = ["коэф", "коэфф", "кф", "город", "регион", "район", "зон", "территор", "надбавк", "индекс"];
+  return coeffKeywords.some(k => n.includes(k));
+}
+
+/** Extract city-coefficient mapping from coefficient sheets */
+function extractCityCoefficients(rows: any[][]): Record<string, number> {
+  const result: Record<string, number> = {};
+
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row) continue;
+
+    let cityName = "";
+    let coeffValue = 0;
+
+    for (const cell of row) {
+      if (cell == null) continue;
+      if (typeof cell === "number" && cell >= 0.1 && cell <= 5.0) {
+        coeffValue = cell;
+      } else {
+        const s = String(cell).trim();
+        // Looks like a city/region name (not a header keyword)
+        if (s.length >= 2 && s.length <= 50 && !matchesAny(normalizeStr(s), [...COEFF_HEADERS, ...PRICE_HEADERS, ...UNIT_HEADERS, ...SKIP_HEADERS])) {
+          if (!cityName) cityName = s;
         }
       }
     }
 
+    if (cityName && coeffValue > 0) {
+      result[cityName] = coeffValue;
+    }
+  }
+
+  return result;
+}
+
+function unmergeSheet(sheet: XLSX.WorkSheet) {
+  if (sheet["!merges"]) {
+    for (const merge of sheet["!merges"]) {
+      const topLeft = sheet[XLSX.utils.encode_cell(merge.s)];
+      if (!topLeft) continue;
+      for (let r = merge.s.r; r <= merge.e.r; r++) {
+        for (let c = merge.s.c; c <= merge.e.c; c++) {
+          if (r === merge.s.r && c === merge.s.c) continue;
+          const addr = XLSX.utils.encode_cell({ r, c });
+          if (!sheet[addr]) sheet[addr] = { ...topLeft };
+        }
+      }
+    }
+  }
+}
+
+export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
+  const buffer = await file.arrayBuffer();
+  const wb = XLSX.read(buffer, { type: "array", cellDates: true });
+  const items: ParsedPriceItem[] = [];
+  let cityCoefficients: Record<string, number> = {};
+
+  // Pass 1: Identify coefficient sheets and extract city coefficients
+  const serviceSheets: string[] = [];
+  for (const sheetName of wb.SheetNames) {
+    const sheet = wb.Sheets[sheetName];
+    unmergeSheet(sheet);
+    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+
+    if (isCoeffSheetByName(sheetName) || isCoefficientSheet(rows)) {
+      const coeffs = extractCityCoefficients(rows);
+      cityCoefficients = { ...cityCoefficients, ...coeffs };
+    } else {
+      serviceSheets.push(sheetName);
+    }
+  }
+
+  // Pass 2: Parse only service sheets
+  for (const sheetName of serviceSheets) {
+    const sheet = wb.Sheets[sheetName];
     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
     if (rows.length < 2) continue;
 
@@ -377,6 +482,20 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       }
 
       items.push({ service_name: name, unit, price, description, coefficient: coeff });
+    }
+  }
+
+  // Pass 3: If city coefficients were found, add them to descriptions
+  if (Object.keys(cityCoefficients).length > 0) {
+    const coeffSummary = Object.entries(cityCoefficients)
+      .map(([city, coeff]) => `${city}: ${coeff}`)
+      .join(", ");
+
+    // Add coefficient info to the first item's description or create a summary
+    for (const item of items) {
+      if (!item.description) {
+        item.description = `Региональные коэффициенты: ${coeffSummary}`;
+      }
     }
   }
 
