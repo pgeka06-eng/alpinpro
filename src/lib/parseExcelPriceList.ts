@@ -393,7 +393,8 @@ function isCoefficientSheet(rows: any[][]): boolean {
 
   let cityLikeRows = 0;
   let serviceLikeRows = 0;
-  const scanEnd = Math.min(50, rows.length);
+  // Scan up to 200 rows to handle large city lists
+  const scanEnd = Math.min(200, rows.length);
 
   for (let r = 0; r < scanEnd; r++) {
     const row = rows[r];
@@ -424,7 +425,8 @@ function isCoefficientSheet(rows: any[][]): boolean {
 
   const total = cityLikeRows + serviceLikeRows;
   if (total < 3) return false;
-  return cityLikeRows / total > 0.6;
+  // If 50%+ rows look like city+coeff, treat as coefficient sheet
+  return cityLikeRows / total > 0.5;
 }
 
 function isCoeffSheetByName(name: string): boolean {
