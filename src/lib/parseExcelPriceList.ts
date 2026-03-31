@@ -304,7 +304,7 @@ function isLikelySectionHeader(name: string, price: number, rawUnit: string | nu
 }
 
 function looksLikeUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value) || /www\./i.test(value) || /[\w.-]+\.[a-z]{2,}(\/|$)/i.test(value);
+  return /^https?:\/\//i.test(value) || /^www\./i.test(value) || /[\w.-]+\.(com|ru|net|org|dev|io|info)(\/|$)/i.test(value);
 }
 
 function looksLikeDateValue(value: any): boolean {
