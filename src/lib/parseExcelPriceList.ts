@@ -328,10 +328,20 @@ function isNoiseServiceName(name: string): boolean {
     "донат", "сумма на ваше усмотрение", "условная единица", "выбрать государство", "россия",
     "сбер", "сбербанк", "т-банк", "тинькофф", "озон-банк", "ozon", "qr", "сбп",
     "если плоды этого труда являются полезными", "messenger.online.sberbank.ru",
+    "васкецов", "александр владимирович", "банк", "finance.ozon", "tbank.ru",
   ];
 
   if (blockedPhrases.some((phrase) => normalized.includes(phrase))) return true;
   if (!/[a-zа-яё]/i.test(name)) return true;
+
+  // Looks like a person's full name (2-3 words, each capitalized, no service keywords)
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2 && words.length <= 3 && words.every(w => /^[А-ЯЁA-Z][а-яёa-z]+$/.test(w))) {
+    // Could be a person name — check it doesn't contain service-like words
+    const serviceHints = ["монтаж", "демонтаж", "мойка", "чистка", "ремонт", "покраска", "установка", "обслуживание", "работ"];
+    if (!serviceHints.some(h => normalized.includes(h))) return true;
+  }
+
   return false;
 }
 
