@@ -486,7 +486,15 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
     if (rows.length < 2) continue;
 
     const cols = guessColumns(rows);
-    if (!cols || !isLikelyServiceSheet(rows, cols)) continue;
+    if (!cols) {
+      console.warn(`[parseExcel] Sheet "${sheetName}": could not detect columns`);
+      continue;
+    }
+    if (!isLikelyServiceSheet(rows, cols)) {
+      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation (cols: name=${cols.nameCol}, price=${cols.priceCol}, unit=${cols.unitCol}, header=${cols.headerRow})`);
+      // Try anyway if sheet has enough rows — skip validation for large sheets
+      if (rows.length < 10) continue;
+    }
 
     const startRow = cols.headerRow + 1;
     let currentSection = "";
