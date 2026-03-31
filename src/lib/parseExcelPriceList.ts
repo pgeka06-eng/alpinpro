@@ -603,7 +603,10 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
 
       items.push({ service_name: name, unit, price, description, coefficient: coeff });
     }
+    console.log(`[parseExcel] Sheet "${sheetName}": extracted ${items.length} total items so far`);
   }
+
+  console.log(`[parseExcel] Total items before coeff: ${items.length}, coefficients found: ${Object.keys(cityCoefficients).length}`);
 
   if (Object.keys(cityCoefficients).length > 0) {
     const coeffSummary = Object.entries(cityCoefficients)
@@ -615,6 +618,7 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
     }
   }
 
+  console.log(`[parseExcel] Final result: ${items.length} items`);
   return items;
 }
 
