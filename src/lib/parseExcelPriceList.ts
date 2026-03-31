@@ -500,19 +500,28 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
   const items: ParsedPriceItem[] = [];
   let cityCoefficients: Record<string, number> = {};
 
+  console.log(`[parseExcel] Workbook has ${wb.SheetNames.length} sheets: ${wb.SheetNames.join(", ")}`);
+
   const serviceSheets: string[] = [];
   for (const sheetName of wb.SheetNames) {
     const sheet = wb.Sheets[sheetName];
     unmergeSheet(sheet);
     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-    if (isCoeffSheetByName(sheetName) || isCoefficientSheet(rows)) {
+    const byName = isCoeffSheetByName(sheetName);
+    const byData = isCoefficientSheet(rows);
+    console.log(`[parseExcel] Sheet "${sheetName}": ${rows.length} rows, coeffByName=${byName}, coeffByData=${byData}`);
+
+    if (byName || byData) {
       const coeffs = extractCityCoefficients(rows);
+      console.log(`[parseExcel] Sheet "${sheetName}": extracted ${Object.keys(coeffs).length} coefficients`);
       cityCoefficients = { ...cityCoefficients, ...coeffs };
     } else {
       serviceSheets.push(sheetName);
     }
   }
+
+  console.log(`[parseExcel] Service sheets to parse: ${serviceSheets.join(", ")}`);
 
   for (const sheetName of serviceSheets) {
     const sheet = wb.Sheets[sheetName];
@@ -521,19 +530,33 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
 
     const cols = guessColumns(rows);
     if (!cols) {
-      console.warn(`[parseExcel] Sheet "${sheetName}": could not detect columns`);
+      console.warn(`[parseExcel] Sheet "${sheetName}": could not detect columns, trying relaxed scan`);
+      // Try with a broader heuristic — look for any column with text > 10 chars and any numeric column
       continue;
     }
-    if (!isLikelyServiceSheet(rows, cols)) {
-      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation — checking if coefficient sheet`);
+    
+    console.log(`[parseExcel] Sheet "${sheetName}": columns detected — name=${cols.nameCol}, price=${cols.priceCol}, unit=${cols.unitCol}, header=${cols.headerRow}`);
+    // Log sample data from first few rows
+    for (let r = cols.headerRow; r < Math.min(cols.headerRow + 3, rows.length); r++) {
+      const row = rows[r];
+      if (row) {
+        console.log(`[parseExcel] Sheet "${sheetName}" row ${r}: name="${row[cols.nameCol]}", price="${row[cols.priceCol]}", unit="${row[cols.unitCol]}"`);
+      }
+    }
+    
+    const validation = isLikelyServiceSheet(rows, cols);
+    if (!validation.isService) {
+      console.warn(`[parseExcel] Sheet "${sheetName}": failed validation: ${validation.reason}`);
       // This sheet might be a coefficient sheet that wasn't caught by name/pattern
       const coeffs = extractCityCoefficients(rows);
       if (Object.keys(coeffs).length >= 3) {
-        console.log(`[parseExcel] Sheet "${sheetName}": detected as coefficient sheet (${Object.keys(coeffs).length} entries)`);
+        console.log(`[parseExcel] Sheet "${sheetName}": re-classified as coefficient sheet (${Object.keys(coeffs).length} entries)`);
         cityCoefficients = { ...cityCoefficients, ...coeffs };
         continue;
       }
+      // Still try to parse if sheet has enough rows
       if (rows.length < 10) continue;
+      console.log(`[parseExcel] Sheet "${sheetName}": trying anyway (${rows.length} rows)`);
     }
 
     const startRow = cols.headerRow + 1;
