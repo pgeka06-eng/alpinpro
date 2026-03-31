@@ -345,14 +345,15 @@ function isNoiseServiceName(name: string): boolean {
   return false;
 }
 
-function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
+function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): { isService: boolean; reason: string } {
   const startRow = cols.headerRow + 1;
   let validRows = 0;
   let noiseRows = 0;
   let coeffLikePrices = 0;
   let totalPrices = 0;
+  let largePrices = 0;
 
-  for (let r = startRow; r < Math.min(startRow + 80, rows.length); r++) {
+  for (let r = startRow; r < Math.min(startRow + 120, rows.length); r++) {
     const row = rows[r];
     if (!row) continue;
 
@@ -369,6 +370,7 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     if (price > 0) {
       totalPrices++;
       if (price >= 0.1 && price <= 5.0) coeffLikePrices++;
+      if (price > 10) largePrices++;
     }
 
     if (isNoiseServiceName(name) || isLikelySectionHeader(name, price, rawUnitStr || null, cols.unitCol >= 0 && cols.unitCol !== cols.nameCol)) {
@@ -381,11 +383,19 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     }
   }
 
-  // If most prices look like coefficients (0.1-5.0), this is a coefficient sheet
-  if (totalPrices >= 5 && coeffLikePrices / totalPrices > 0.7) return false;
+  // If most prices look like coefficients (0.1-5.0) AND no large prices exist, this is a coefficient sheet
+  if (totalPrices >= 5 && coeffLikePrices / totalPrices > 0.7 && largePrices === 0) {
+    return { isService: false, reason: `coeff-like prices (${coeffLikePrices}/${totalPrices} in 0.1-5.0 range, 0 large)` };
+  }
 
-  // Accept sheet if at least 2 valid rows and valid rows dominate noise
-  return validRows >= 2 && validRows >= noiseRows * 0.5;
+  if (validRows < 2) {
+    return { isService: false, reason: `too few valid rows (${validRows}), noise=${noiseRows}` };
+  }
+  if (validRows < noiseRows * 0.5) {
+    return { isService: false, reason: `noise dominates (valid=${validRows}, noise=${noiseRows})` };
+  }
+
+  return { isService: true, reason: `valid=${validRows}, noise=${noiseRows}, prices=${totalPrices}` };
 }
 
 function isCoefficientSheet(rows: any[][]): boolean {
