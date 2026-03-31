@@ -109,8 +109,8 @@ function findPriceColFromData(rows: any[][], startRow: number, excludeCols: numb
 function guessColumns(rows: any[][]): ColumnMap | null {
   if (rows.length < 2) return null;
 
-  // Pass 1: Find header row by keyword matching
-  for (let r = 0; r < Math.min(20, rows.length); r++) {
+  // Pass 1: Find header row by keyword matching (scan up to 50 rows)
+  for (let r = 0; r < Math.min(50, rows.length); r++) {
     const row = rows[r];
     if (!row || !isHeaderRow(row)) continue;
 
