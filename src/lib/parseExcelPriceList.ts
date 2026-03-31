@@ -515,8 +515,14 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       continue;
     }
     if (!isLikelyServiceSheet(rows, cols)) {
-      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation (cols: name=${cols.nameCol}, price=${cols.priceCol}, unit=${cols.unitCol}, header=${cols.headerRow})`);
-      // Try anyway if sheet has enough rows — skip validation for large sheets
+      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation — checking if coefficient sheet`);
+      // This sheet might be a coefficient sheet that wasn't caught by name/pattern
+      const coeffs = extractCityCoefficients(rows);
+      if (Object.keys(coeffs).length >= 3) {
+        console.log(`[parseExcel] Sheet "${sheetName}": detected as coefficient sheet (${Object.keys(coeffs).length} entries)`);
+        cityCoefficients = { ...cityCoefficients, ...coeffs };
+        continue;
+      }
       if (rows.length < 10) continue;
     }
 
