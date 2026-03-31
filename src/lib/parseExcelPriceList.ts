@@ -62,20 +62,22 @@ function isNumberColumn(val: string): boolean {
   return matchesAny(val, SKIP_HEADERS) || /^№/.test(val.trim());
 }
 
-/** Try to detect if a row looks like a header row (has multiple text cells matching known keywords) */
+/** Try to detect if a row looks like a header row */
 function isHeaderRow(row: any[]): boolean {
   if (!row) return false;
   let matches = 0;
+  let hasName = false;
   for (const cell of row) {
     const v = normalizeStr(cell);
     if (!v) continue;
-    if (matchesAny(v, NAME_HEADERS) || matchesAny(v, UNIT_HEADERS) ||
-        matchesAny(v, PRICE_HEADERS) || matchesAny(v, COEFF_HEADERS) ||
-        isNumberColumn(v)) {
+    if (matchesAny(v, NAME_HEADERS)) { matches++; hasName = true; }
+    else if (matchesAny(v, UNIT_HEADERS) || matchesAny(v, PRICE_HEADERS) ||
+             matchesAny(v, COEFF_HEADERS) || isNumberColumn(v)) {
       matches++;
     }
   }
-  return matches >= 2;
+  // Accept if 2+ matches, OR if name header found alone (price col inferred from data)
+  return matches >= 2 || hasName;
 }
 
 function findPriceColFromData(rows: any[][], startRow: number, excludeCols: number[]): number {
