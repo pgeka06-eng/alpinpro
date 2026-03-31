@@ -349,6 +349,8 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
   const startRow = cols.headerRow + 1;
   let validRows = 0;
   let noiseRows = 0;
+  let coeffLikePrices = 0;
+  let totalPrices = 0;
 
   for (let r = startRow; r < Math.min(startRow + 80, rows.length); r++) {
     const row = rows[r];
@@ -364,6 +366,11 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     const rawUnitStr = rawUnit ? String(rawUnit).trim() : "";
     const coeff = cols.coeffCol !== -1 ? parseCoeff(row[cols.coeffCol]) : null;
 
+    if (price > 0) {
+      totalPrices++;
+      if (price >= 0.1 && price <= 5.0) coeffLikePrices++;
+    }
+
     if (isNoiseServiceName(name) || isLikelySectionHeader(name, price, rawUnitStr || null, cols.unitCol >= 0 && cols.unitCol !== cols.nameCol)) {
       noiseRows++;
       continue;
@@ -373,6 +380,9 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
       validRows++;
     }
   }
+
+  // If most prices look like coefficients (0.1-5.0), this is a coefficient sheet
+  if (totalPrices >= 5 && coeffLikePrices / totalPrices > 0.7) return false;
 
   // Accept sheet if at least 2 valid rows and valid rows dominate noise
   return validRows >= 2 && validRows >= noiseRows * 0.5;
