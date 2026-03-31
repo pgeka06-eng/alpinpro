@@ -328,10 +328,20 @@ function isNoiseServiceName(name: string): boolean {
     "донат", "сумма на ваше усмотрение", "условная единица", "выбрать государство", "россия",
     "сбер", "сбербанк", "т-банк", "тинькофф", "озон-банк", "ozon", "qr", "сбп",
     "если плоды этого труда являются полезными", "messenger.online.sberbank.ru",
+    "васкецов", "александр владимирович", "банк", "finance.ozon", "tbank.ru",
   ];
 
   if (blockedPhrases.some((phrase) => normalized.includes(phrase))) return true;
   if (!/[a-zа-яё]/i.test(name)) return true;
+
+  // Looks like a person's full name (2-3 words, each capitalized, no service keywords)
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2 && words.length <= 3 && words.every(w => /^[А-ЯЁA-Z][а-яёa-z]+$/.test(w))) {
+    // Could be a person name — check it doesn't contain service-like words
+    const serviceHints = ["монтаж", "демонтаж", "мойка", "чистка", "ремонт", "покраска", "установка", "обслуживание", "работ"];
+    if (!serviceHints.some(h => normalized.includes(h))) return true;
+  }
+
   return false;
 }
 
@@ -339,6 +349,8 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
   const startRow = cols.headerRow + 1;
   let validRows = 0;
   let noiseRows = 0;
+  let coeffLikePrices = 0;
+  let totalPrices = 0;
 
   for (let r = startRow; r < Math.min(startRow + 80, rows.length); r++) {
     const row = rows[r];
@@ -354,6 +366,11 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     const rawUnitStr = rawUnit ? String(rawUnit).trim() : "";
     const coeff = cols.coeffCol !== -1 ? parseCoeff(row[cols.coeffCol]) : null;
 
+    if (price > 0) {
+      totalPrices++;
+      if (price >= 0.1 && price <= 5.0) coeffLikePrices++;
+    }
+
     if (isNoiseServiceName(name) || isLikelySectionHeader(name, price, rawUnitStr || null, cols.unitCol >= 0 && cols.unitCol !== cols.nameCol)) {
       noiseRows++;
       continue;
@@ -364,6 +381,9 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     }
   }
 
+  // If most prices look like coefficients (0.1-5.0), this is a coefficient sheet
+  if (totalPrices >= 5 && coeffLikePrices / totalPrices > 0.7) return false;
+
   // Accept sheet if at least 2 valid rows and valid rows dominate noise
   return validRows >= 2 && validRows >= noiseRows * 0.5;
 }
@@ -373,7 +393,8 @@ function isCoefficientSheet(rows: any[][]): boolean {
 
   let cityLikeRows = 0;
   let serviceLikeRows = 0;
-  const scanEnd = Math.min(50, rows.length);
+  // Scan up to 200 rows to handle large city lists
+  const scanEnd = Math.min(200, rows.length);
 
   for (let r = 0; r < scanEnd; r++) {
     const row = rows[r];
@@ -404,7 +425,8 @@ function isCoefficientSheet(rows: any[][]): boolean {
 
   const total = cityLikeRows + serviceLikeRows;
   if (total < 3) return false;
-  return cityLikeRows / total > 0.6;
+  // If 50%+ rows look like city+coeff, treat as coefficient sheet
+  return cityLikeRows / total > 0.5;
 }
 
 function isCoeffSheetByName(name: string): boolean {
@@ -493,8 +515,14 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
       continue;
     }
     if (!isLikelyServiceSheet(rows, cols)) {
-      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation (cols: name=${cols.nameCol}, price=${cols.priceCol}, unit=${cols.unitCol}, header=${cols.headerRow})`);
-      // Try anyway if sheet has enough rows — skip validation for large sheets
+      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation — checking if coefficient sheet`);
+      // This sheet might be a coefficient sheet that wasn't caught by name/pattern
+      const coeffs = extractCityCoefficients(rows);
+      if (Object.keys(coeffs).length >= 3) {
+        console.log(`[parseExcel] Sheet "${sheetName}": detected as coefficient sheet (${Object.keys(coeffs).length} entries)`);
+        cityCoefficients = { ...cityCoefficients, ...coeffs };
+        continue;
+      }
       if (rows.length < 10) continue;
     }
 
