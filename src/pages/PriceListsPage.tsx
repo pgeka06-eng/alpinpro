@@ -112,6 +112,7 @@ export default function PriceListsPage() {
 
         if (isExcelFile(file)) {
           const parsedItems = await parseExcelFile(file);
+          console.log(`[PriceList] Parsed ${parsedItems.length} items from "${file.name}"`, parsedItems.slice(0, 5));
           const items = parsedItems
             .map((item) => ({
               ...item,
@@ -122,8 +123,9 @@ export default function PriceListsPage() {
             }))
             .filter((item) => item.service_name && item.service_name.length > 1);
 
+          console.log(`[PriceList] After filtering: ${items.length} items`);
           if (items.length === 0) {
-            toast.warning(`«${file.name}»: не удалось распознать услуги`);
+            toast.warning(`«${file.name}»: не удалось распознать услуги. Проверьте консоль для деталей.`);
             continue;
           }
 
