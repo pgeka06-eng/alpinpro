@@ -148,7 +148,7 @@ function guessColumns(rows: any[][]): ColumnMap | null {
   // Find the column with the longest text strings (name) and the column with positive numbers (price).
   const colTextLen: Record<number, number[]> = {};
   const colNumVals: Record<number, number[]> = {};
-  const scanEnd = Math.min(30, rows.length);
+  const scanEnd = Math.min(60, rows.length);
 
   for (let r = 0; r < scanEnd; r++) {
     const row = rows[r];
