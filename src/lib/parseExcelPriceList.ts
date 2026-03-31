@@ -31,6 +31,8 @@ const NAME_HEADERS = [
   "наименование услуг", "виды работ", "вид работ", "перечень работ",
   "услуга", "работа", "наименование услуги", "содержание работ",
   "содержание", "вид услуг", "тип работ", "тип услуг",
+  "описание", "описание работ", "описание услуг", "прейскурант",
+  "виды услуг", "перечень услуг", "позиции", "наименования",
 ];
 const UNIT_HEADERS = ["ед.", "единиц", "изм", "ед.изм", "ед. изм", "единица", "ед.измер"];
 const PRICE_HEADERS = [
@@ -62,20 +64,22 @@ function isNumberColumn(val: string): boolean {
   return matchesAny(val, SKIP_HEADERS) || /^№/.test(val.trim());
 }
 
-/** Try to detect if a row looks like a header row (has multiple text cells matching known keywords) */
+/** Try to detect if a row looks like a header row */
 function isHeaderRow(row: any[]): boolean {
   if (!row) return false;
   let matches = 0;
+  let hasName = false;
   for (const cell of row) {
     const v = normalizeStr(cell);
     if (!v) continue;
-    if (matchesAny(v, NAME_HEADERS) || matchesAny(v, UNIT_HEADERS) ||
-        matchesAny(v, PRICE_HEADERS) || matchesAny(v, COEFF_HEADERS) ||
-        isNumberColumn(v)) {
+    if (matchesAny(v, NAME_HEADERS)) { matches++; hasName = true; }
+    else if (matchesAny(v, UNIT_HEADERS) || matchesAny(v, PRICE_HEADERS) ||
+             matchesAny(v, COEFF_HEADERS) || isNumberColumn(v)) {
       matches++;
     }
   }
-  return matches >= 2;
+  // Accept if 2+ matches, OR if name header found alone (price col inferred from data)
+  return matches >= 2 || hasName;
 }
 
 function findPriceColFromData(rows: any[][], startRow: number, excludeCols: number[]): number {
@@ -109,8 +113,8 @@ function findPriceColFromData(rows: any[][], startRow: number, excludeCols: numb
 function guessColumns(rows: any[][]): ColumnMap | null {
   if (rows.length < 2) return null;
 
-  // Pass 1: Find header row by keyword matching
-  for (let r = 0; r < Math.min(20, rows.length); r++) {
+  // Pass 1: Find header row by keyword matching (scan up to 50 rows)
+  for (let r = 0; r < Math.min(50, rows.length); r++) {
     const row = rows[r];
     if (!row || !isHeaderRow(row)) continue;
 
@@ -146,7 +150,7 @@ function guessColumns(rows: any[][]): ColumnMap | null {
   // Find the column with the longest text strings (name) and the column with positive numbers (price).
   const colTextLen: Record<number, number[]> = {};
   const colNumVals: Record<number, number[]> = {};
-  const scanEnd = Math.min(30, rows.length);
+  const scanEnd = Math.min(60, rows.length);
 
   for (let r = 0; r < scanEnd; r++) {
     const row = rows[r];
@@ -302,7 +306,7 @@ function isLikelySectionHeader(name: string, price: number, rawUnit: string | nu
 }
 
 function looksLikeUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value) || /www\./i.test(value) || /[\w.-]+\.[a-z]{2,}(\/|$)/i.test(value);
+  return /^https?:\/\//i.test(value) || /^www\./i.test(value) || /[\w.-]+\.(com|ru|net|org|dev|io|info)(\/|$)/i.test(value);
 }
 
 function looksLikeDateValue(value: any): boolean {
@@ -360,7 +364,8 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     }
   }
 
-  return validRows >= 3 && validRows >= noiseRows;
+  // Accept sheet if at least 2 valid rows and valid rows dominate noise
+  return validRows >= 2 && validRows >= noiseRows * 0.5;
 }
 
 function isCoefficientSheet(rows: any[][]): boolean {
@@ -483,7 +488,15 @@ export async function parseExcelFile(file: File): Promise<ParsedPriceItem[]> {
     if (rows.length < 2) continue;
 
     const cols = guessColumns(rows);
-    if (!cols || !isLikelyServiceSheet(rows, cols)) continue;
+    if (!cols) {
+      console.warn(`[parseExcel] Sheet "${sheetName}": could not detect columns`);
+      continue;
+    }
+    if (!isLikelyServiceSheet(rows, cols)) {
+      console.warn(`[parseExcel] Sheet "${sheetName}": failed service sheet validation (cols: name=${cols.nameCol}, price=${cols.priceCol}, unit=${cols.unitCol}, header=${cols.headerRow})`);
+      // Try anyway if sheet has enough rows — skip validation for large sheets
+      if (rows.length < 10) continue;
+    }
 
     const startRow = cols.headerRow + 1;
     let currentSection = "";
