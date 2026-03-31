@@ -362,7 +362,8 @@ function isLikelyServiceSheet(rows: any[][], cols: ColumnMap): boolean {
     }
   }
 
-  return validRows >= 3 && validRows >= noiseRows;
+  // Accept sheet if at least 2 valid rows and valid rows dominate noise
+  return validRows >= 2 && validRows >= noiseRows * 0.5;
 }
 
 function isCoefficientSheet(rows: any[][]): boolean {
